@@ -4,17 +4,24 @@
 
 package io.airbyte.integrations.destination.mssql;
 
+import static io.airbyte.cdk.integrations.destination.jdbc.SqlOperationsUtilsKt.insertRawRecordsInSingleQuery;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import io.airbyte.cdk.db.jdbc.JdbcDatabase;
 import io.airbyte.cdk.integrations.base.JavaBaseConstants;
+import io.airbyte.cdk.integrations.destination.async.model.PartialAirbyteMessage;
 import io.airbyte.cdk.integrations.destination.jdbc.SqlOperations;
-import io.airbyte.cdk.integrations.destination.jdbc.SqlOperationsUtils;
-import io.airbyte.protocol.models.v0.AirbyteRecordMessage;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.List;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SqlServerOperations implements SqlOperations {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(SqlServerOperations.class);
 
   @Override
   public void createSchemaIfNotExists(final JdbcDatabase database, final String schemaName) throws Exception {
@@ -37,10 +44,12 @@ public class SqlServerOperations implements SqlOperations {
             + "CREATE TABLE %s.%s ( \n"
             + "%s VARCHAR(64) PRIMARY KEY,\n"
             + "%s NVARCHAR(MAX),\n" // Microsoft SQL Server specific: NVARCHAR can store Unicode meanwhile VARCHAR - not
-            + "%s DATETIMEOFFSET(7) DEFAULT SYSDATETIMEOFFSET()\n"
+            + "%s DATETIMEOFFSET(7) DEFAULT SYSDATETIMEOFFSET(),\n"
+            + "%s DATETIMEOFFSET(7),\n"
+            + "%s NVARCHAR(MAX),\n"
             + ");\n",
-        schemaName, tableName, schemaName, tableName, JavaBaseConstants.COLUMN_NAME_AB_ID, JavaBaseConstants.COLUMN_NAME_DATA,
-        JavaBaseConstants.COLUMN_NAME_EMITTED_AT);
+        schemaName, tableName, schemaName, tableName, JavaBaseConstants.COLUMN_NAME_AB_RAW_ID, JavaBaseConstants.COLUMN_NAME_DATA,
+        JavaBaseConstants.COLUMN_NAME_AB_EXTRACTED_AT, JavaBaseConstants.COLUMN_NAME_AB_LOADED_AT, JavaBaseConstants.COLUMN_NAME_AB_META);
   }
 
   @Override
@@ -60,7 +69,7 @@ public class SqlServerOperations implements SqlOperations {
 
   @Override
   public void insertRecords(final JdbcDatabase database,
-                            final List<AirbyteRecordMessage> records,
+                            final List<PartialAirbyteMessage> records,
                             final String schemaName,
                             final String tempTableName)
       throws SQLException {
@@ -69,21 +78,19 @@ public class SqlServerOperations implements SqlOperations {
     // Limited the variable to 500 records to
     final int MAX_BATCH_SIZE = 500;
     final String insertQueryComponent = String.format(
-        "INSERT INTO %s.%s (%s, %s, %s) VALUES\n",
+        "INSERT INTO %s.%s (%s, %s, %s, %s, %s) VALUES\n",
         schemaName,
         tempTableName,
-        JavaBaseConstants.COLUMN_NAME_AB_ID,
+        JavaBaseConstants.COLUMN_NAME_AB_RAW_ID,
         JavaBaseConstants.COLUMN_NAME_DATA,
-        JavaBaseConstants.COLUMN_NAME_EMITTED_AT);
-    final String recordQueryComponent = "(?, ?, ?),\n";
-    final List<List<AirbyteRecordMessage>> batches = Lists.partition(records, MAX_BATCH_SIZE);
-    batches.forEach(record -> {
-      try {
-        SqlOperationsUtils.insertRawRecordsInSingleQuery(insertQueryComponent, recordQueryComponent, database, record);
-      } catch (final SQLException e) {
-        e.printStackTrace();
-      }
-    });
+        JavaBaseConstants.COLUMN_NAME_AB_EXTRACTED_AT,
+        JavaBaseConstants.COLUMN_NAME_AB_LOADED_AT,
+        JavaBaseConstants.COLUMN_NAME_AB_META);
+    final String recordQueryComponent = "(?, ?, ?, ?, ?),\n";
+    final List<List<PartialAirbyteMessage>> batches = Lists.partition(records, MAX_BATCH_SIZE);
+    for (List<PartialAirbyteMessage> batch : batches) {
+      insertRawRecordsInSingleQuery(insertQueryComponent, recordQueryComponent, database, batch, UUID::randomUUID, true, 400, Types.NVARCHAR);
+    }
   }
 
   @Override
