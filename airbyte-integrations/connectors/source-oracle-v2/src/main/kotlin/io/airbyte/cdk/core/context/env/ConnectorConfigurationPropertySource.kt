@@ -5,6 +5,7 @@
 package io.airbyte.cdk.core.context.env
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.airbyte.cdk.core.operation.OperationType
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
 import io.airbyte.commons.json.Jsons
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -38,12 +39,15 @@ class ConnectorConfigurationPropertySource(commandLine: CommandLine) :
         const val JSON_SUFFIX: String = "json"
 
         private fun resolveValues(commandLine: CommandLine): Map<String, Any> {
-            if (commandLine.rawArguments.isEmpty()) {
-                logger.warn { "Empty command line." }
-                return mapOf()
+            val ops: List<OperationType> = OperationType.entries.filter { commandLine.optionValue(it.name.lowercase()) != null }
+            if (ops.isEmpty()) {
+                throw IllegalArgumentException("Command line is missing an operation.")
+            }
+            if (ops.size > 1) {
+                throw IllegalArgumentException("Command line has multiple operations: $ops")
             }
             val values: MutableMap<String, Any> = mutableMapOf()
-            values[CONNECTOR_OPERATION] = commandLine.rawArguments[0].lowercase()
+            values[CONNECTOR_OPERATION] = ops.first().name.lowercase()
             for ((cliOptionKey, prefix) in mapOf(
                 JavaBaseConstants.ARGS_CONFIG_KEY to CONNECTOR_CONFIG_PREFIX,
                 JavaBaseConstants.ARGS_CATALOG_KEY to CONNECTOR_CATALOG_PREFIX,

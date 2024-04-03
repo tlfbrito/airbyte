@@ -22,8 +22,9 @@ class DefaultDiscoverOperationExecutorTest {
         val result = executor.execute()
         assertTrue(result.isSuccess)
         result.onSuccess {
-            assertEquals(AirbyteMessage.Type.CATALOG, it?.type)
-            assertNotNull(it?.catalog)
+            assertEquals(1, it.count())
+            assertEquals(AirbyteMessage.Type.CATALOG, it.first().type)
+            assertNotNull(it.first().catalog)
         }
     }
 }

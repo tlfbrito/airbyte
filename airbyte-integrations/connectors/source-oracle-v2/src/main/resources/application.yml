@@ -1,0 +1,8 @@
+micronaut:
+  application:
+    name: source-oracle-v2
+
+airbyte:
+  connector:
+    configuration:
+      class: "io.airbyte.integrations.source.oracle.config.properties.OracleSourceConfiguration"

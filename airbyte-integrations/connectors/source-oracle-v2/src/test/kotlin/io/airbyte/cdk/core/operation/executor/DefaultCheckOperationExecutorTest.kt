@@ -16,7 +16,8 @@ class DefaultCheckOperationExecutorTest {
         val result = executor.execute()
         assertTrue(result.isSuccess)
         result.onSuccess {
-            assertEquals(AirbyteConnectionStatus.Status.SUCCEEDED, it?.connectionStatus?.status)
+            assertEquals(1, it.count())
+            assertEquals(AirbyteConnectionStatus.Status.SUCCEEDED, it.first().connectionStatus?.status)
         }
     }
 }

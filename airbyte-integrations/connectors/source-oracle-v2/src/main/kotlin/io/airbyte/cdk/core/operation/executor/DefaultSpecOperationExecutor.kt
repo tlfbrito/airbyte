@@ -27,7 +27,7 @@ private val logger = KotlinLogging.logger {}
 class DefaultSpecOperationExecutor(
     @Value("\${airbyte.connector.specification.file:spec.json}") private val specFile: String,
 ) : OperationExecutor {
-    override fun execute(): Result<AirbyteMessage> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default spec operation executor." }
         try {
             val resourceString = MoreResources.readResource(specFile)
@@ -37,7 +37,10 @@ class DefaultSpecOperationExecutor(
                     ConnectorSpecification::class.java,
                 )
             return Result.success(
-                AirbyteMessage().withType(AirbyteMessage.Type.SPEC).withSpec(connectorSpecification)
+                sequenceOf(AirbyteMessage()
+                    .withType(AirbyteMessage.Type.SPEC)
+                    .withSpec(connectorSpecification)
+                )
             )
         } catch (e: Exception) {
             return Result.failure(

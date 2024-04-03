@@ -30,8 +30,10 @@ class ConnectorConfigurationPropertySourceTest {
         val configJson = "{\"$key\":\"$value\", \"nested\": { \"$key\":\"$value\" } }"
         val configFile = kotlin.io.path.createTempFile("connector-config-", ".json")
         configFile.writeText(configJson)
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_CONFIG_KEY, configFile.pathString)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns
             configFile.pathString
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns ""
@@ -48,8 +50,10 @@ class ConnectorConfigurationPropertySourceTest {
         val operation = OperationType.CHECK.name.lowercase()
         val commandLine: CommandLine = mockk()
         val configFilePath = "/does/not/exist"
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_CONFIG_KEY, configFilePath)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns configFilePath
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_STATE_KEY) } returns ""
@@ -63,8 +67,10 @@ class ConnectorConfigurationPropertySourceTest {
     internal fun testConvertingTheConnectorConfigurationArgumentWithABlankPathToConfigurationProperties() {
         val operation = OperationType.CHECK.name.lowercase()
         val commandLine: CommandLine = mockk()
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_CONFIG_KEY)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_STATE_KEY) } returns ""
@@ -84,8 +90,10 @@ class ConnectorConfigurationPropertySourceTest {
             "{\"streams\":[{\"stream\":{\"name\":\"$streamName\",\"namespace\":\"$streamNamespace\"}}]}"
         val catalogFile = kotlin.io.path.createTempFile("connector-catalog-", ".json")
         catalogFile.writeText(catalogJson)
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_CATALOG_KEY, catalogFile.pathString)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns
             catalogFile.pathString
@@ -104,8 +112,10 @@ class ConnectorConfigurationPropertySourceTest {
         val operation = OperationType.READ.name.lowercase()
         val commandLine: CommandLine = mockk()
         val catalogFilePath = "/does/not/exist"
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_CATALOG_KEY, catalogFilePath)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns
             catalogFilePath
@@ -120,8 +130,10 @@ class ConnectorConfigurationPropertySourceTest {
     internal fun testConvertingTheConnectorCatalogArgumentWithABlankPathToConfigurationProperties() {
         val operation = OperationType.READ.name.lowercase()
         val commandLine: CommandLine = mockk()
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_CATALOG_KEY)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_STATE_KEY) } returns ""
@@ -138,8 +150,10 @@ class ConnectorConfigurationPropertySourceTest {
         val stateJson = "{\"cursor\":\"foo\"}"
         val stateFile = kotlin.io.path.createTempFile("connector-state-", ".json")
         stateFile.writeText(stateJson)
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_STATE_KEY, stateFile.pathString)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_STATE_KEY) } returns
@@ -155,8 +169,10 @@ class ConnectorConfigurationPropertySourceTest {
         val operation = OperationType.READ.name.lowercase()
         val commandLine: CommandLine = mockk()
         val stateFilePath = "/does/not/exist"
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_STATE_KEY, stateFilePath)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_STATE_KEY) } returns stateFilePath
@@ -170,8 +186,10 @@ class ConnectorConfigurationPropertySourceTest {
     internal fun testConvertingTheConnectorStateArgumentWithABlankPathToConfigurationProperties() {
         val operation = OperationType.READ.name.lowercase()
         val commandLine: CommandLine = mockk()
-        every { commandLine.rawArguments } returns
-            arrayOf(operation, JavaBaseConstants.ARGS_STATE_KEY)
+        for (op in OperationType.entries) {
+            every { commandLine.optionValue(op.name.lowercase()) } returns
+                "".takeIf { op.name.lowercase() == operation }
+        }
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY) } returns ""
         every { commandLine.optionValue(JavaBaseConstants.ARGS_STATE_KEY) } returns ""

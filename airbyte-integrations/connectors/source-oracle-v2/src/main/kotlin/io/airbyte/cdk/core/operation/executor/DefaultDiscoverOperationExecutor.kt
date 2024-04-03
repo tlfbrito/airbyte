@@ -22,10 +22,12 @@ private val logger = KotlinLogging.logger {}
 )
 @Requires(env = ["source"])
 class DefaultDiscoverOperationExecutor : OperationExecutor {
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default discover operation executor." }
         return Result.success(
-            AirbyteMessage().withType(AirbyteMessage.Type.CATALOG).withCatalog(AirbyteCatalog())
+            sequenceOf(
+                AirbyteMessage().withType(AirbyteMessage.Type.CATALOG).withCatalog(AirbyteCatalog())
+            )
         )
     }
 }

@@ -27,7 +27,7 @@ class DefaultSpecOperation(
         return OperationType.SPEC
     }
 
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default spec operation." }
         return operationExecutor.execute()
     }

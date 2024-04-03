@@ -21,14 +21,15 @@ private val logger = KotlinLogging.logger {}
     value = "check",
 )
 class DefaultCheckOperationExecutor : OperationExecutor {
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default check operation executor." }
         return Result.success(
-            AirbyteMessage()
+            sequenceOf(AirbyteMessage()
                 .withType(AirbyteMessage.Type.CONNECTION_STATUS)
                 .withConnectionStatus(
                     AirbyteConnectionStatus().withStatus(AirbyteConnectionStatus.Status.SUCCEEDED),
                 ),
+            )
         )
     }
 }

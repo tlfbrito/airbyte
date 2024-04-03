@@ -26,7 +26,7 @@ class DefaultSpecOperationTest {
         val operationExecutor: OperationExecutor = mockk()
         val expectedMessage = AirbyteMessage()
 
-        every { operationExecutor.execute() } returns Result.success(expectedMessage)
+        every { operationExecutor.execute() } returns Result.success(sequenceOf(expectedMessage))
 
         val operation = DefaultSpecOperation(operationExecutor = operationExecutor)
 

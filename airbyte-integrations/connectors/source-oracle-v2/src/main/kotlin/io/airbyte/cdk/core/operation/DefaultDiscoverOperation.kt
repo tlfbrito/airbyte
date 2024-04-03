@@ -28,7 +28,7 @@ class DefaultDiscoverOperation(
         return OperationType.DISCOVER
     }
 
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default check operation." }
         return operationExecutor.execute()
     }

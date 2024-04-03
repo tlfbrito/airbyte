@@ -11,6 +11,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -26,7 +27,7 @@ class DefaultCheckOperationTest {
     internal fun testThatOnSuccessfulExecutionOfTheOperationTheResultIsReturned() {
         val operationExecutor: OperationExecutor = mockk()
 
-        every { operationExecutor.execute() } returns Result.success(AirbyteMessage())
+        every { operationExecutor.execute() } returns Result.success(sequenceOf(AirbyteMessage()))
 
         val operation = DefaultCheckOperation(operationExecutor = operationExecutor)
 
@@ -54,7 +55,7 @@ class DefaultCheckOperationTest {
 
         val result = operation.execute()
         assertTrue(result.isSuccess)
-        assertEquals(expectedMessage, result.getOrNull())
+        assertIterableEquals(listOf(expectedMessage), result.getOrNull()?.toList())
         verify { operationExecutor.execute() }
     }
 }

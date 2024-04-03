@@ -52,19 +52,35 @@ class IntegrationCommand : Runnable {
     @Named("outputRecordCollector")
     lateinit var outputRecordCollector: Consumer<AirbyteMessage>
 
-    @CommandLine.Parameters(
-        index = "0",
-        description =
-            [
-                "The command to execute (check|discover|read|spec|write)",
-                "\t check - checks the config can be used to connect",
-                "\t discover - outputs a catalog describing the source's catalog",
-                "\t read - reads the source and outputs messages to STDOUT",
-                "\t spec - outputs the json configuration specification",
-                "\t write - writes messages from STDIN to the integration",
-            ],
+    @CommandLine.Option(
+        names = ["--spec"],
+        description = ["outputs the json configuration specification"],
     )
-    lateinit var command: String
+    var isSpec: Boolean = false
+
+    @CommandLine.Option(
+        names = ["--check"],
+        description = ["checks the config can be used to connect"],
+    )
+    var isCheck: Boolean = false
+
+    @CommandLine.Option(
+        names = ["--discover"],
+        description = ["outputs a catalog describing the source's catalog"],
+    )
+    var isDiscover: Boolean = false
+
+    @CommandLine.Option(
+        names = ["--read"],
+        description = ["reads the source and outputs messages to STDOUT"],
+    )
+    var isRead: Boolean = false
+
+    @CommandLine.Option(
+        names = ["--write"],
+        description = ["writes messages from STDIN to the integration"],
+    )
+    var isWrite: Boolean = false
 
     /*
      * This option is present so that the usage information will include the option.  It
@@ -108,14 +124,14 @@ class IntegrationCommand : Runnable {
 
     override fun run() {
         val result = operation.execute()
-        result.onSuccess { airbyteMessage ->
-            airbyteMessage?.let { outputRecordCollector.accept(airbyteMessage) }
+        result.onSuccess { airbyteMessageSequence ->
+            airbyteMessageSequence.forEach(outputRecordCollector::accept)
         }
         result.onFailure {
             commandSpec.commandLine().usage(System.out)
             // Add new line between usage menu and error
             println("")
-            logger.error(it) { "Unable to perform operation '$command'." }
+            logger.error(it) { "Unable to perform operation." }
             // Many of the exceptions thrown are nested inside layers of RuntimeExceptions. An
             // attempt is made to find the root exception that corresponds to a configuration
             // error. If that does not exist, we just return the original exception.
@@ -128,7 +144,7 @@ class IntegrationCommand : Runnable {
             if (ConnectorExceptionUtil.isConfigError(rootThrowable)) {
                 AirbyteTraceMessageUtility.emitConfigErrorTrace(it, displayMessage)
             }
-            if (OperationType.CHECK.name.equals(command, true)) {
+            if (isCheck) {
                 // Currently, special handling is required for the CHECK case since the user display
                 // information in the trace message is not properly surfaced to the FE. In the
                 // future, we can remove this and just throw an exception.

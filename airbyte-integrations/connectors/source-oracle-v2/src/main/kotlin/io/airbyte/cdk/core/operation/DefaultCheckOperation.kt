@@ -28,18 +28,19 @@ class DefaultCheckOperation(
         return OperationType.CHECK
     }
 
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default check operation." }
         val result = operationExecutor.execute()
         result.onFailure {
             return Result.success(
-                AirbyteMessage()
+                sequenceOf(AirbyteMessage()
                     .withType(AirbyteMessage.Type.CONNECTION_STATUS)
                     .withConnectionStatus(
                         AirbyteConnectionStatus()
                             .withStatus(AirbyteConnectionStatus.Status.FAILED)
                             .withMessage(it.message),
                     ),
+                )
             )
         }
         return result

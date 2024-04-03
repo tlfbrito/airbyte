@@ -19,8 +19,9 @@ class DefaultSpecOperationExecutorTest {
 
         assertTrue(result.isSuccess)
         result.onSuccess {
-            assertEquals(AirbyteMessage.Type.SPEC, it.type)
-            assertNotNull(it.spec)
+            assertEquals(1, it.count())
+            assertEquals(AirbyteMessage.Type.SPEC, it.first().type)
+            assertNotNull(it.first().spec)
         }
     }
 

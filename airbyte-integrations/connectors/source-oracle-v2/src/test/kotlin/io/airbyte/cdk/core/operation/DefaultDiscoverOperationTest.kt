@@ -9,6 +9,7 @@ import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertIterableEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
@@ -26,11 +27,11 @@ class DefaultDiscoverOperationTest {
         val expectedMessage = AirbyteMessage()
         val operation = DefaultDiscoverOperation(operationExecutor = operationExecutor)
 
-        every { operationExecutor.execute() } returns Result.success(expectedMessage)
+        every { operationExecutor.execute() } returns Result.success(sequenceOf(expectedMessage))
 
         val result = operation.execute()
         assertTrue(result.isSuccess)
-        assertEquals(expectedMessage, result.getOrNull())
+        assertIterableEquals(listOf(expectedMessage), result.getOrNull()?.toList())
     }
 
     @Test

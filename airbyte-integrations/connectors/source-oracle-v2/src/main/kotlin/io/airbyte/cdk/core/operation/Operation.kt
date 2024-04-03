@@ -14,5 +14,5 @@ interface Operation {
 
     fun type(): OperationType
 
-    fun execute(): Result<AirbyteMessage?>
+    fun execute(): Result<Sequence<AirbyteMessage>>
 }

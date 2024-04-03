@@ -28,7 +28,7 @@ class DefaultReadOperation(
         return OperationType.READ
     }
 
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default read operation." }
         return operationExecutor.execute()
     }

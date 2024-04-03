@@ -32,7 +32,7 @@ class DefaultReadOperationExecutor(
     @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>,
     private val shutdownUtils: ShutdownUtils,
 ) : OperationExecutor {
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default read operation executor." }
         try {
             if (messageIterator.isPresent) {
@@ -62,7 +62,7 @@ class DefaultReadOperationExecutor(
                     ),
                 )
             }
-            return Result.success(null)
+            return Result.success(sequenceOf())
         } finally {
             shutdownUtils.stopOrphanedThreads(
                 ShutdownUtils.EXIT_HOOK,

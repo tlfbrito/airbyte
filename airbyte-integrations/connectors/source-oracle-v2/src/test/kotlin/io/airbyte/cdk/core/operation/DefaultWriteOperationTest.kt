@@ -26,7 +26,7 @@ class DefaultWriteOperationTest {
 
         every { operationExecutor.execute() } answers
             {
-                Result.success(AirbyteMessage())
+                Result.success(sequenceOf(AirbyteMessage()))
             } andThenAnswer
             {
                 Result.failure(NullPointerException("test"))

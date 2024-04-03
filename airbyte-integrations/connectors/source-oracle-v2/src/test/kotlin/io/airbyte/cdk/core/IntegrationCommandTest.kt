@@ -22,7 +22,6 @@ class IntegrationCommandTest {
     @Test
     internal fun testThatTheOperationCommandIsExecuted() {
         val operationType = OperationType.CHECK
-        val command = operationType.name.lowercase()
         val commandSpec: CommandSpec = mockk()
         val connectorName = "test-connector"
         val operation: Operation = mockk()
@@ -30,11 +29,11 @@ class IntegrationCommandTest {
         val expectedMessage = AirbyteMessage()
 
         every { operation.type() } returns operationType
-        every { operation.execute() } returns Result.success(expectedMessage)
+        every { operation.execute() } returns Result.success(sequenceOf(expectedMessage))
         every { outputRecordCollector.accept(expectedMessage) } returns Unit
 
         val integrationCommand = IntegrationCommand()
-        integrationCommand.command = command
+        integrationCommand.isCheck = true
         integrationCommand.commandSpec = commandSpec
         integrationCommand.connectorName = connectorName
         integrationCommand.operation = operation
@@ -49,7 +48,6 @@ class IntegrationCommandTest {
     @Test
     internal fun testThatWhenTheOperationCommandIsExecutedAndFailsTheFailureIsHandled() {
         val operationType = OperationType.CHECK
-        val command = operationType.name.lowercase()
         val commandSpec: CommandSpec = mockk()
         val commandLine: CommandLine = mockk()
         val connectorName = "test-connector"
@@ -65,7 +63,7 @@ class IntegrationCommandTest {
         every { outputRecordCollector.accept(any()) } returns Unit
 
         val integrationCommand = IntegrationCommand()
-        integrationCommand.command = command
+        integrationCommand.isCheck = true
         integrationCommand.commandSpec = commandSpec
         integrationCommand.connectorName = connectorName
         integrationCommand.operation = operation

@@ -9,7 +9,7 @@ airbyteJavaConnector {
 }
 
 application {
-    mainClass = 'io.airbyte.integrations.source.oracle.OracleSourceKt'
+    mainClass = 'io.airbyte.integrations.source.oracle.OracleSource'
     applicationDefaultJvmArgs = [
             '-XX:+ExitOnOutOfMemoryError',
             '-XX:MaxRAMPercentage=75.0',

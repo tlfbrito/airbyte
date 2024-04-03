@@ -26,14 +26,14 @@ import picocli.CommandLine
  */
 class AirbyteConnectorRunner {
     companion object {
-        fun <R : Runnable> run(
+        @JvmStatic fun <R : Runnable> run(
             cls: Class<R>,
             vararg args: String,
         ) {
             buildApplicationContext(cls, args).start().use { ctx -> run(cls, ctx, *args) }
         }
 
-        fun <R : Runnable> run(
+        @JvmStatic fun <R : Runnable> run(
             cls: Class<R>,
             ctx: ApplicationContext,
             vararg args: String,

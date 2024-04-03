@@ -28,7 +28,7 @@ class DefaultWriteOperation(
         return OperationType.WRITE
     }
 
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default write operation." }
         return operationExecutor.execute()
     }

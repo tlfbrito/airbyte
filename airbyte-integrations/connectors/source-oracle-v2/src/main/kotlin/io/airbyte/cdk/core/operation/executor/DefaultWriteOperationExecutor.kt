@@ -30,11 +30,11 @@ class DefaultWriteOperationExecutor(
     private val shutdownUtils: ShutdownUtils,
     private val writeStreamConsumer: WriteStreamConsumer,
 ) : OperationExecutor {
-    override fun execute(): Result<AirbyteMessage?> {
+    override fun execute(): Result<Sequence<AirbyteMessage>> {
         logger.info { "Using default write operation executor." }
         try {
             writeStreamConsumer.consumeWriteStream()
-            return Result.success(null)
+            return Result.success(sequenceOf())
         } catch (e: Exception) {
             return Result.failure(
                 OperationExecutionException("Failed to write output from connector.", e)
