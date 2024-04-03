@@ -4,13 +4,15 @@
 
 package io.airbyte.cdk.core.context.env
 
-import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.JsonNode
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
 import io.airbyte.commons.json.Jsons
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.env.MapPropertySource
 import io.micronaut.core.cli.CommandLine
+import java.io.File
 import java.nio.file.Path
+import java.util.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,120 +31,52 @@ private val logger = KotlinLogging.logger {}
 class ConnectorConfigurationPropertySource(commandLine: CommandLine) :
     MapPropertySource("connector", resolveValues(commandLine)) {
     companion object {
-        private const val PREFIX_FORMAT = "%s.%s"
-        private const val ROOT_CONFIGURATION_PROPERTY_KEY = "airbyte.connector"
-        const val CONNECTOR_OPERATION: String = "$ROOT_CONFIGURATION_PROPERTY_KEY.operation"
-        const val CONNECTOR_CONFIG_PREFIX: String = "$ROOT_CONFIGURATION_PROPERTY_KEY.config"
-        const val CONNECTOR_CATALOG_PREFIX: String = "$ROOT_CONFIGURATION_PROPERTY_KEY.catalog"
-        const val CONNECTOR_CATALOG_KEY: String = "json"
-        const val CONNECTOR_STATE_PREFIX: String = "$ROOT_CONFIGURATION_PROPERTY_KEY.state"
-        const val CONNECTOR_STATE_KEY: String = "json"
+        const val CONNECTOR_OPERATION: String = "airbyte.connector.operation"
+        const val CONNECTOR_CONFIG_PREFIX: String = "airbyte.connector.config"
+        const val CONNECTOR_CATALOG_PREFIX: String = "airbyte.connector.catalog"
+        const val CONNECTOR_STATE_PREFIX: String = "airbyte.connector.state"
+        const val JSON_SUFFIX: String = "json"
 
         private fun resolveValues(commandLine: CommandLine): Map<String, Any> {
-            val values: MutableMap<String, Any> = mutableMapOf()
-            if (commandLine.rawArguments.isNotEmpty()) {
-                values[CONNECTOR_OPERATION] = commandLine.rawArguments[0].lowercase()
-                commandLine.optionValue(JavaBaseConstants.ARGS_CONFIG_KEY)?.let {
-                    values.putAll(
-                        loadFile(
-                            it as String,
-                            CONNECTOR_CONFIG_PREFIX,
-                        ),
-                    )
-                }
-                commandLine.optionValue(JavaBaseConstants.ARGS_CATALOG_KEY)?.let {
-                    values.putAll(
-                        loadFileContents(
-                            it as String,
-                            String.format(
-                                PREFIX_FORMAT,
-                                CONNECTOR_CATALOG_PREFIX,
-                                CONNECTOR_CATALOG_KEY
-                            ),
-                        ),
-                    )
-                }
-                commandLine.optionValue(JavaBaseConstants.ARGS_STATE_KEY)?.let {
-                    values.putAll(
-                        loadFileContents(
-                            it as String,
-                            String.format(
-                                PREFIX_FORMAT,
-                                CONNECTOR_STATE_PREFIX,
-                                CONNECTOR_STATE_KEY
-                            ),
-                        ),
-                    )
-                }
+            if (commandLine.rawArguments.isEmpty()) {
+                logger.warn { "Empty command line." }
+                return mapOf()
             }
-            logger.debug { "Resolved values: $values" }
+            val values: MutableMap<String, Any> = mutableMapOf()
+            values[CONNECTOR_OPERATION] = commandLine.rawArguments[0].lowercase()
+            for ((cliOptionKey, prefix) in mapOf(
+                JavaBaseConstants.ARGS_CONFIG_KEY to CONNECTOR_CONFIG_PREFIX,
+                JavaBaseConstants.ARGS_CATALOG_KEY to CONNECTOR_CATALOG_PREFIX,
+                JavaBaseConstants.ARGS_STATE_KEY to CONNECTOR_STATE_PREFIX,
+            )) {
+                val cliOptionValue = commandLine.optionValue(cliOptionKey) as String?
+                if (cliOptionValue.isNullOrBlank()) {
+                    continue
+                }
+                val propertyFile: File = Path.of(cliOptionValue).toFile()
+                if (!propertyFile.exists()) {
+                    logger.warn { "Property file '$propertyFile' not found for '$cliOptionKey'." }
+                    continue
+                }
+                val maybeJson: Optional<JsonNode> = Jsons.tryDeserialize(propertyFile.readText())
+                if (maybeJson.isEmpty) {
+                    logger.warn { "Invalid JSON for '$cliOptionValue'." }
+                    continue
+                }
+                val json: JsonNode = maybeJson.get()
+                values["$prefix.$JSON_SUFFIX"] = Jsons.serialize(json)
+                walk(json, prefix, values)
+            }
             return values
         }
 
-        private fun loadFile(
-            propertyFilePath: String,
-            prefix: String,
-        ): Map<String, Any> {
-            if (propertyFilePath.isNotBlank()) {
-                val propertyFile = Path.of(propertyFilePath).toFile()
-                if (propertyFile.exists()) {
-                    val properties: Map<String, Any> =
-                        Jsons.deserialize(propertyFile.readText(), MapTypeReference())
-                    return flatten(properties, prefix).map { it.key to it.value }.toList().toMap()
-                } else {
-                    logger.warn { "Property file '$propertyFile', not found for prefix '$prefix'." }
-                    return mapOf()
+        private fun walk(json: JsonNode, prefix: String, values: MutableMap<String, Any>) {
+            json.fields().forEachRemaining { e ->
+                if (e.value.isObject) {
+                    walk(e.value, "$prefix.${e.key}", values)
                 }
-            } else {
-                return mapOf()
-            }
-        }
-
-        private fun loadFileContents(
-            propertyFilePath: String,
-            prefix: String,
-        ): Map<String, Any> {
-            if (propertyFilePath.isNotBlank()) {
-                val propertyFile = Path.of(propertyFilePath).toFile()
-                if (propertyFile.exists()) {
-                    return mapOf<String, Any>(prefix to propertyFile.readText())
-                } else {
-                    logger.warn { "Property file '$propertyFile', not found for prefix '$prefix'." }
-                    return mapOf()
-                }
-            } else {
-                return mapOf()
-            }
-        }
-
-        private fun flatten(
-            map: Map<String, Any>,
-            prefix: String,
-        ): Map<String, Any> {
-            return map.flatMap { flattenValue(it, prefix).toList() }.toMap()
-        }
-
-        @Suppress("UNCHECKED_CAST")
-        private fun flattenValue(
-            entry: Map.Entry<String, Any>,
-            prefix: String,
-        ): Map<String, Any> {
-            return if (entry.value is Map<*, *>) {
-                flatten(
-                    entry.value as Map<String, Any>,
-                    String.format(PREFIX_FORMAT, prefix, entry.key)
-                )
-            } else {
-                mapOf(
-                    String.format(
-                        PREFIX_FORMAT,
-                        prefix,
-                        entry.key,
-                    ) to entry.value
-                )
+                values["$prefix.${e.key}"] = e.value.asText()
             }
         }
     }
-
-    private class MapTypeReference : TypeReference<Map<String, Any>>()
 }

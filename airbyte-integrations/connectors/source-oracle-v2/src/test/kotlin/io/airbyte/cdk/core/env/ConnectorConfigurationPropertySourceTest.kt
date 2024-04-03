@@ -5,12 +5,11 @@
 package io.airbyte.cdk.core.env
 
 import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource.Companion.CONNECTOR_CATALOG_KEY
 import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource.Companion.CONNECTOR_CATALOG_PREFIX
 import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource.Companion.CONNECTOR_CONFIG_PREFIX
 import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource.Companion.CONNECTOR_OPERATION
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource.Companion.CONNECTOR_STATE_KEY
 import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource.Companion.CONNECTOR_STATE_PREFIX
+import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource.Companion.JSON_SUFFIX
 import io.airbyte.cdk.core.operation.OperationType
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
 import io.micronaut.core.cli.CommandLine
@@ -96,7 +95,7 @@ class ConnectorConfigurationPropertySourceTest {
         assertEquals(operation, propertySource.get(CONNECTOR_OPERATION))
         assertEquals(
             catalogJson,
-            propertySource.get("$CONNECTOR_CATALOG_PREFIX.$CONNECTOR_CATALOG_KEY")
+            propertySource.get("$CONNECTOR_CATALOG_PREFIX.$JSON_SUFFIX")
         )
     }
 
@@ -148,7 +147,7 @@ class ConnectorConfigurationPropertySourceTest {
 
         val propertySource = ConnectorConfigurationPropertySource(commandLine)
         assertEquals(operation, propertySource.get(CONNECTOR_OPERATION))
-        assertEquals(stateJson, propertySource.get("$CONNECTOR_STATE_PREFIX.$CONNECTOR_STATE_KEY"))
+        assertEquals(stateJson, propertySource.get("$CONNECTOR_STATE_PREFIX.$JSON_SUFFIX"))
     }
 
     @Test
