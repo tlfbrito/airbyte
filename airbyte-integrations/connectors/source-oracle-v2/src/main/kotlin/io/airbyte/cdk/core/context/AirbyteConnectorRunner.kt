@@ -47,11 +47,11 @@ class AirbyteConnectorRunner {
             args: Array<out String>,
         ): ApplicationContextBuilder {
             val commandLine: MicronautCommandLine = MicronautCommandLine.parse(*args)
-            val connectorConfigurationPropertySource =
-                ConnectorConfigurationPropertySource(commandLine)
+            val configPropertySource = ConnectorConfigurationPropertySource(commandLine)
             val commandLinePropertySource = CommandLinePropertySource(commandLine)
-            return ApplicationContext.builder(cls, Environment.CLI)
-                .propertySources(connectorConfigurationPropertySource, commandLinePropertySource)
+            return ApplicationContext
+                .builder(cls, Environment.CLI)
+                .propertySources(configPropertySource, commandLinePropertySource)
         }
     }
 }
