@@ -16,11 +16,15 @@ spotbugsTest.enabled = false
 spotbugsTestFixtures.enabled = false
 
 dependencies {
+
     api 'org.apache.commons:commons-csv:1.10.0'
 
     implementation project(':airbyte-cdk:java:airbyte-cdk:dependencies')
     implementation project(':airbyte-cdk:java:airbyte-cdk:core')
     compileOnly project(':airbyte-cdk:java:airbyte-cdk:typing-deduping')
+
+    compileOnly 'org.projectlombok:lombok:1.18.30'
+    annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
     implementation 'io.aesy:datasize:1.0.0'
 

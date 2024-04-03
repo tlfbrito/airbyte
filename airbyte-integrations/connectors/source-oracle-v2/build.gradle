@@ -18,6 +18,23 @@ application {
 }
 
 dependencies {
+    // CDK
+
+    api "io.micronaut:micronaut-inject-java:4.3.13"
+    api "io.micronaut:micronaut-runtime:4.3.7"
+    api 'io.micronaut.picocli:micronaut-picocli:5.2.0'
+    api "info.picocli:picocli:4.7.5"
+    api 'io.github.oshai:kotlin-logging-jvm:5.1.0'
+
+    ksp "info.picocli:picocli-codegen:4.7.5"
+    ksp "io.micronaut:micronaut-inject-java:4.3.13"
+    ksp "io.micronaut:micronaut-inject-kotlin:4.3.13"
+
+    // Pin to 1.13.6 due to https://github.com/mockk/mockk/issues/1133
+    testImplementation 'io.mockk:mockk:1.13.6'
+
+    // CONNECTOR
+
     implementation "com.oracle.database.jdbc:ojdbc8-production:19.7.0.0"
 
     testImplementation 'org.testcontainers:oracle-xe:1.19.4'
