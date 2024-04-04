@@ -32,6 +32,8 @@ dependencies {
 
     // Pin to 1.13.6 due to https://github.com/mockk/mockk/issues/1133
     testImplementation 'io.mockk:mockk:1.13.6'
+    testImplementation 'io.micronaut.test:micronaut-test-core:4.2.1'
+    testImplementation 'io.micronaut.test:micronaut-test-junit5:4.2.1'
 
     // CONNECTOR
 

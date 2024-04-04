@@ -4,5 +4,5 @@ micronaut:
 
 airbyte:
   connector:
-    configuration:
+    config:
       class: "io.airbyte.integrations.source.oracle.config.properties.OracleSourceConfiguration"

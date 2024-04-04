@@ -39,16 +39,16 @@ class OracleSourceConfiguration : ConnectorConfiguration {
 
 }
 
-class OracleSourceConnectionDataConfiguration {
+class OracleSourceConnectionDataConfiguration(connectionData: Map<String, Any?>) {
 
     @JsonProperty("connection_type")
-    var connectionType: String? = null
+    val connectionType: String = connectionData.getOrDefault("connection_type", "").toString()
 
     @JsonProperty("service_name")
-    var serviceName: String? = null
+    val serviceName: String? = connectionData["service_name"] as String?
 
     @JsonProperty("sid")
-    var sid: String? = null
+    val sid: String? = connectionData["sid"] as String?
 }
 
 class OracleSourceEncryptionConfiguration {
