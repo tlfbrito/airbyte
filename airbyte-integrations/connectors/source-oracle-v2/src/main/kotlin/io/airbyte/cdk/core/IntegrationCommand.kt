@@ -6,19 +6,12 @@ package io.airbyte.cdk.core
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 import io.airbyte.cdk.core.operation.Operation
-import io.airbyte.cdk.integrations.base.AirbyteTraceMessageUtility
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
-import io.airbyte.cdk.integrations.util.ApmTraceUtils
-import io.airbyte.cdk.integrations.util.ConnectorExceptionUtil
-import io.airbyte.protocol.models.v0.AirbyteConnectionStatus
-import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Value
 import jakarta.inject.Inject
-import jakarta.inject.Named
 import java.nio.file.Path
-import java.util.Optional
-import java.util.function.Consumer
+import java.util.*
 import picocli.CommandLine
 
 private val logger = KotlinLogging.logger {}
@@ -43,9 +36,6 @@ private val logger = KotlinLogging.logger {}
     justification = "Uses dependency injection",
 )
 class IntegrationCommand : Runnable {
-    @Value("\${micronaut.application.name}") lateinit var connectorName: String
-
-    @Inject lateinit var operation: Operation
 
     @CommandLine.Option(
         names = ["--spec"],
@@ -115,29 +105,15 @@ class IntegrationCommand : Runnable {
     )
     lateinit var stateFile: Optional<Path>
 
-    @CommandLine.Spec lateinit var commandSpec: CommandLine.Model.CommandSpec
-
     override fun run() {
         try {
             operation.execute()
-        } catch (e: Throwable) {
-            commandSpec.commandLine().usage(System.out)
-            // Add new line between usage menu and error
-            println("")
-            logger.error(e) { "Unable to perform operation." }
-            // Many of the exceptions thrown are nested inside layers of RuntimeExceptions. An
-            // attempt is made to find the root exception that corresponds to a configuration
-            // error. If that does not exist, we just return the original exception.
-            ApmTraceUtils.addExceptionToTrace(e)
-            val rootThrowable = ConnectorExceptionUtil.getRootConfigError(Exception(e))
-            val displayMessage = ConnectorExceptionUtil.getDisplayMessage(rootThrowable)
-            // If the source connector throws a config error, a trace message with the relevant
-            // message should
-            // be surfaced.
-            if (ConnectorExceptionUtil.isConfigError(rootThrowable)) {
-                AirbyteTraceMessageUtility.emitConfigErrorTrace(e, displayMessage)
-            }
+        } finally {
+            logger.info { "Completed integration: $connectorName" }
         }
-        logger.info { "Completed integration: $connectorName" }
     }
+
+    @Value("\${micronaut.application.name}") lateinit var connectorName: String
+    @Inject lateinit var operation: Operation
+
 }

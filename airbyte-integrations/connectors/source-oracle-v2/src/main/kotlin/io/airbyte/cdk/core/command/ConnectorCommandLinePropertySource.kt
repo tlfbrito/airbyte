@@ -1,13 +1,6 @@
-/*
- * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
- */
-
-package io.airbyte.cdk.core.context.env
+package io.airbyte.cdk.core.command
 
 import com.fasterxml.jackson.databind.JsonNode
-import io.airbyte.cdk.core.command.option.CONNECTOR_CATALOG_PREFIX
-import io.airbyte.cdk.core.command.option.CONNECTOR_CONFIG_PREFIX
-import io.airbyte.cdk.core.command.option.CONNECTOR_STATE_PREFIX
 import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
 import io.airbyte.cdk.core.operation.OperationType
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
@@ -33,8 +26,9 @@ private val logger = KotlinLogging.logger {}
  * file path argument, if present.</li> <li><b>airbyte.connector.state</b> - the Airbyte connector
  * state as JSON read from the state file path argument, if present.</li> </ol>
  */
-class ConnectorConfigurationPropertySource(commandLine: CommandLine) :
+class ConnectorCommandLinePropertySource(commandLine: CommandLine) :
     MapPropertySource("connector", resolveValues(commandLine))
+
 
 private fun resolveValues(commandLine: CommandLine): Map<String, Any> {
     val ops: List<OperationType> = OperationType.entries.filter {

@@ -1,17 +1,17 @@
-package io.airbyte.integrations.source.oracle.config.properties
+package io.airbyte.integrations.source.oracle
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
-import io.airbyte.cdk.core.command.option.CONNECTOR_CONFIG_PREFIX
-import io.airbyte.cdk.core.command.option.ConnectorConfiguration
-import io.airbyte.cdk.core.command.option.ConnectorConfigurationSupplier
-import io.airbyte.cdk.core.command.option.SourceConnectorConfiguration
-import io.airbyte.cdk.core.command.option.SshKeyAuthTunnelConfiguration
-import io.airbyte.cdk.core.command.option.SshNoTunnelConfiguration
-import io.airbyte.cdk.core.command.option.SshPasswordAuthTunnelConfiguration
-import io.airbyte.cdk.core.command.option.SshTunnelConfiguration
-import io.airbyte.cdk.core.command.option.SshTunnelConfigurationPOJO
+import io.airbyte.cdk.core.command.CONNECTOR_CONFIG_PREFIX
+import io.airbyte.cdk.core.command.ConnectorConfigurationSupplier
+import io.airbyte.cdk.core.command.SourceConnectorConfiguration
+import io.airbyte.cdk.core.command.SshKeyAuthTunnelConfiguration
+import io.airbyte.cdk.core.command.SshNoTunnelConfiguration
+import io.airbyte.cdk.core.command.SshPasswordAuthTunnelConfiguration
+import io.airbyte.cdk.core.command.SshTunnelConfiguration
+import io.airbyte.cdk.core.command.SshTunnelConfigurationPOJO
+import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.commons.io.IOs
 import io.airbyte.commons.json.Jsons
 import io.airbyte.commons.resources.MoreResources
@@ -29,21 +29,19 @@ import java.security.KeyStore
 import java.security.cert.Certificate
 import java.security.cert.CertificateFactory
 import java.util.*
-import java.util.function.Supplier
 import org.apache.commons.lang3.RandomStringUtils
 import org.bouncycastle.util.io.pem.PemReader
-
 
 private val logger = KotlinLogging.logger {}
 
 data class OracleSourceConfiguration (
-    override val realHost: String,
-    override val realPort: Int,
-    val sshTunnel: SshTunnelConfiguration,
-    val jdbcUrl: String,
-    val jdbcProperties: Map<String, String>,
-    val defaultSchema: String,
-    val schemas: List<String>
+        override val realHost: String,
+        override val realPort: Int,
+        override val sshTunnel: SshTunnelConfiguration,
+        val jdbcUrl: String,
+        val jdbcProperties: Map<String, String>,
+        val defaultSchema: String,
+        val schemas: List<String>
 ) : SourceConnectorConfiguration {
     override fun getDefaultNamespace(): Optional<String> = Optional.of(defaultSchema)
 
@@ -125,7 +123,7 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
     val schema = Jsons.deserialize(MoreResources.readBytes("spec.json"))
     val results = JsonSchemaValidator().validate(schema, json)
     if (results.isNotEmpty()) {
-        throw RuntimeException("config json schema violation: ${results.first()}")
+        throw ConfigErrorException("config json schema violation: ${results.first()}")
     }
     val pojo = Jsons.`object`(json, ConfigurationPOJO::class.java)
     val realHost: String = pojo.host!!
@@ -167,7 +165,7 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
     val protocol: String = when (pojo.encryption.encryptionMethod) {
         "unencrypted", "client_nne" -> "TCP"
         "encrypted_verify_certificate" -> "TCPS"
-        else -> throw RuntimeException(
+        else -> throw ConfigErrorException(
             "invalid encryption method ${pojo.encryption.encryptionMethod}",
         )
     }
@@ -198,7 +196,7 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
     val connectionTypeValue: String = when (pojo.connectionData.connectionType) {
         "service_name" -> pojo.connectionData.serviceName!!
         "sid" -> pojo.connectionData.sid!!
-        else -> throw RuntimeException("config does not specify a valid connection_type")
+        else -> throw ConfigErrorException("config does not specify a valid connection_type")
     }
     val connectionTypeName: String = pojo.connectionData.connectionType!!
     // Build URL and return.
@@ -217,5 +215,3 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
         schemas = pojo.schemas.ifEmpty { listOf(defaultSchema) },
     )
 }
-
-

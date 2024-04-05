@@ -2,15 +2,13 @@ package io.airbyte.integrations.source.oracle
 
 import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
 import io.airbyte.commons.io.IOs
-import io.airbyte.integrations.source.oracle.operation.executor.OracleSourceCheckOperation
 import io.micronaut.context.annotation.Property
-import io.micronaut.context.env.Environment
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
 import jakarta.inject.Inject
 import java.io.File
 import org.junit.jupiter.api.Test
 
-@MicronautTest(environments = [Environment.TEST, "source"])
+@MicronautTest(environments = ["source"])
 @Property(name = CONNECTOR_OPERATION, value = "check")
 class OracleSourceCheckTest {
 
@@ -25,9 +23,7 @@ class OracleSourceCheckTest {
     @Property(name = "airbyte.connector.config.jdbc_url_params", value = "hello")
     @Property(name = "airbyte.connector.config.connection_data.connection_type", value = "service_name")
     @Property(name = "airbyte.connector.config.connection_data.service_name", value = "myname")
-    @Property(name = "airbyte.connector.config.encryption.encryption_method", value = "poopypants")
-    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "FOO")
-    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_host", value = "localhost")
+    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "NO_TUNNEL")
     internal fun testConfig() {
         checkOperation.execute()
 
@@ -66,7 +62,7 @@ class OracleSourceCheckTest {
                 "schemas": ["foo", "bar"],
                 "encryption": {"encryption_method": "encrypted_verify_certificate", "ssl_certificate": "$sslCert"},
                 "connection_data": {"connection_type": "service_name", "service_name": "myname"},
-                "tunnel_method": {"tunnel_method": "NO_TUNNEL"}
+                "tunnel_method": {"tunnel_method": "FOO"}
             }
         """.trimIndent()))
         configFile.deleteOnExit()

@@ -6,6 +6,6 @@ import io.airbyte.cdk.core.IntegrationCommand;
 public class OracleSource {
 
   static public void main(String[] args) {
-    AirbyteConnectorRunner.run(IntegrationCommand.class, args);
+    AirbyteConnectorRunner.run(AirbyteConnectorRunner.ConnectorType.SOURCE, IntegrationCommand.class, args);
   }
 }

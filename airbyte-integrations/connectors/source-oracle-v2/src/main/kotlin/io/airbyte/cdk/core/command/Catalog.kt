@@ -2,25 +2,40 @@
  * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
  */
 
-package io.airbyte.cdk.core.event
+package io.airbyte.cdk.core.command
 
-import io.airbyte.cdk.core.command.option.ConfiguredAirbyteCatalogSupplier
 import io.airbyte.cdk.core.operation.Operation
+import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.ConfiguredAirbyteCatalog
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.micronaut.context.annotation.ConfigurationProperties
 import io.micronaut.context.annotation.Requires
 import io.micronaut.context.event.ApplicationEventListener
 import io.micronaut.context.event.StartupEvent
 import jakarta.inject.Singleton
+import java.util.function.Supplier
 
 private val logger = KotlinLogging.logger {}
 
-/**
- * Event listener that validates the Airbyte configured catalog, if present. This listener is
- * executed on application start.
- */
+const val CONNECTOR_CATALOG_PREFIX: String = "airbyte.connector.catalog"
+
+interface ConfiguredAirbyteCatalogSupplier : Supplier<ConfiguredAirbyteCatalog>
+
+@ConfigurationProperties(CONNECTOR_CATALOG_PREFIX)
+class ConfiguredAirbyteCatalogPOJO : ConfiguredAirbyteCatalogSupplier {
+
+    var json: String = "{}"
+
+    private val validated: ConfiguredAirbyteCatalog by lazy {
+        Jsons.deserialize(json, ConfiguredAirbyteCatalog::class.java)
+    }
+
+    override fun get(): ConfiguredAirbyteCatalog = validated
+
+}
+
 @Singleton
-@Requires(bean = ConfiguredAirbyteCatalogSupplier::class)
+@Requires(property = CONNECTOR_CATALOG_PREFIX)
 class ConfiguredAirbyteCatalogValidator(
     private val operation: Operation,
     private val catalogSupplier: ConfiguredAirbyteCatalogSupplier,

@@ -4,7 +4,6 @@
 
 package io.airbyte.cdk.core.operation
 
-import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
 import jakarta.inject.Named
@@ -20,8 +19,7 @@ class DefaultWriteOperation : Operation {
 
     override val type = OperationType.WRITE
 
-    override fun execute(): Result<Unit> {
+    override fun execute() {
         logger.info { "Using default write operation." }
-        return Result.success(Unit)
     }
 }

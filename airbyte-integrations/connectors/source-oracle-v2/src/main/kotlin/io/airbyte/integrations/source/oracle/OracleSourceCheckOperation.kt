@@ -1,11 +1,9 @@
-package io.airbyte.integrations.source.oracle.operation.executor
+package io.airbyte.integrations.source.oracle
 
-import io.airbyte.cdk.core.command.option.ConnectorConfigurationSupplier
+import io.airbyte.cdk.core.command.ConnectorConfigurationSupplier
 import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
 import io.airbyte.cdk.core.operation.Operation
 import io.airbyte.cdk.core.operation.OperationType
-import io.airbyte.integrations.source.oracle.config.properties.OracleSourceConfiguration
-import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.micronaut.context.annotation.Primary
 import io.micronaut.context.annotation.Requires
 import jakarta.inject.Named
@@ -23,9 +21,8 @@ class OracleSourceCheckOperation(
 
     override val type = OperationType.CHECK
 
-    override fun execute(): Result<Unit> {
+    override fun execute() {
         val config = configSupplier.get()
         println(config.toString())
-        TODO()
     }
 }

@@ -1,18 +1,23 @@
-package io.airbyte.cdk.core.command.option
+package io.airbyte.cdk.core.command
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
+import io.airbyte.cdk.core.operation.Operation
 import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.AirbyteStateMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.ConfigurationProperties
+import io.micronaut.context.annotation.Requires
+import io.micronaut.context.event.ApplicationEventListener
+import io.micronaut.context.event.StartupEvent
+import jakarta.inject.Singleton
 import java.util.function.Supplier
 
 private val logger = KotlinLogging.logger {}
 
-interface ConnectorInputStateSupplier : Supplier<List<AirbyteStateMessage>>
-
 const val CONNECTOR_STATE_PREFIX: String = "airbyte.connector.state"
+
+interface ConnectorInputStateSupplier : Supplier<List<AirbyteStateMessage>>
 
 @ConfigurationProperties(CONNECTOR_STATE_PREFIX)
 class AirbyteStateMessageListPOJO : ConnectorInputStateSupplier {
@@ -58,4 +63,36 @@ class AirbyteStateMessageListPOJO : ConnectorInputStateSupplier {
 
     override fun get(): List<AirbyteStateMessage> = validated
 
+}
+
+@Singleton
+@Requires(property = CONNECTOR_STATE_PREFIX)
+class ConnectorInputStateValidator(
+    private val operation: Operation,
+    private val configSupplier: ConnectorConfigurationSupplier<out ConnectorConfiguration>,
+    private val stateSupplier: ConnectorInputStateSupplier,
+) : ApplicationEventListener<StartupEvent> {
+
+    override fun onApplicationEvent(event: StartupEvent) {
+        val state: List<AirbyteStateMessage> = stateSupplier.get()
+        if (state.isEmpty()) {
+            // Input state is always optional.
+            return
+        }
+        val stateType: AirbyteStateMessage.AirbyteStateType = state.first().type
+        logger.info { "valid $stateType input state present for ${operation.type.name}" }
+        if (!operation.type.acceptsState) {
+            logger.warn { "${operation.type.name} does not accept state" }
+            return
+        }
+        val expectedStateType: AirbyteStateMessage.AirbyteStateType = sourceConfig().expectedStateType
+        if (expectedStateType != stateType) {
+            throw IllegalArgumentException(
+                "$stateType input state incompatible with config, which requires $expectedStateType"
+            )
+        }
+    }
+
+    private fun sourceConfig(): SourceConnectorConfiguration =
+        configSupplier.get() as SourceConnectorConfiguration
 }

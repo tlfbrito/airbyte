@@ -24,12 +24,11 @@ class DefaultDiscoverOperation(
 
     override val type = OperationType.DISCOVER
 
-    override fun execute(): Result<Unit> {
+    override fun execute() {
         logger.info { "Using default discover operation." }
         outputRecordCollector.accept(
             AirbyteMessage()
                 .withType(AirbyteMessage.Type.CATALOG)
                 .withCatalog(AirbyteCatalog()))
-        return Result.success(Unit)
     }
 }

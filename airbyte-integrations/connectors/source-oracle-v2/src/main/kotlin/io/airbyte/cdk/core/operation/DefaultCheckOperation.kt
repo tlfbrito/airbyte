@@ -23,13 +23,12 @@ class DefaultCheckOperation(
 
     override val type = OperationType.CHECK
 
-    override fun execute(): Result<Unit> {
+    override fun execute() {
         logger.info { "Using default check operation." }
         outputRecordCollector.accept(
             AirbyteMessage()
                 .withType(AirbyteMessage.Type.CONNECTION_STATUS)
                 .withConnectionStatus(AirbyteConnectionStatus()
                     .withStatus(AirbyteConnectionStatus.Status.SUCCEEDED)))
-        return Result.success(Unit)
     }
 }

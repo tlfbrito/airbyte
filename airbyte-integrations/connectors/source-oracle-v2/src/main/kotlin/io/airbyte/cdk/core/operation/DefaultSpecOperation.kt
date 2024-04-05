@@ -27,19 +27,18 @@ class DefaultSpecOperation(
 
     override val type = OperationType.SPEC
 
-    override fun execute(): Result<Unit> {
+    override fun execute() {
         logger.info { "Using default spec operation." }
         val spec: ConnectorSpecification
         try {
             val specString: String = MoreResources.readResource(specFile)
             spec = Jsons.deserialize(specString, ConnectorSpecification::class.java)
         } catch (e: Exception) {
-            return Result.failure(OperationExecutionException("Failed to retrieve connector specification from resource '$specFile'.", e))
+            throw OperationExecutionException("Failed to retrieve connector specification from resource '$specFile'.", e)
         }
         outputRecordCollector.accept(
             AirbyteMessage()
                 .withType(AirbyteMessage.Type.SPEC)
                 .withSpec(spec))
-        return Result.success(Unit)
     }
 }

@@ -4,8 +4,6 @@
 
 package io.airbyte.cdk.core.operation
 
-import io.airbyte.protocol.models.v0.AirbyteMessage
-
 const val CONNECTOR_OPERATION: String = "airbyte.connector.operation"
 
 /**
@@ -16,7 +14,7 @@ interface Operation {
 
     val type: OperationType
 
-    fun execute(): Result<Unit>
+    fun execute()
 }
 
 /**
