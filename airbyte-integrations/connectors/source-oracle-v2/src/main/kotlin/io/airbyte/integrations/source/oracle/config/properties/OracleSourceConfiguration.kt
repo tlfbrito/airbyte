@@ -7,7 +7,7 @@ import io.airbyte.cdk.core.command.option.SshKeyAuthTunnelConfiguration
 import io.airbyte.cdk.core.command.option.SshNoTunnelConfiguration
 import io.airbyte.cdk.core.command.option.SshPasswordAuthTunnelConfiguration
 import io.airbyte.cdk.core.command.option.SshTunnelConfiguration
-import io.airbyte.cdk.core.command.option.SshTunnelConfigurationSupplierImpl
+import io.airbyte.cdk.core.command.option.SshTunnelConfigurationPOJO
 import io.airbyte.commons.io.IOs
 import io.airbyte.commons.json.Jsons
 import io.airbyte.commons.resources.MoreResources
@@ -43,7 +43,7 @@ data class OracleSourceConfiguration(
 interface OracleSourceConfigurationSupplier : Supplier<OracleSourceConfiguration>
 
 @ConfigurationProperties("airbyte.connector.config")
-class OracleSourceConfigurationSupplierImpl : OracleSourceConfigurationSupplier {
+private class ConfigurationPOJO : OracleSourceConfigurationSupplier {
 
     @JsonIgnore
     var json: String? = null
@@ -74,52 +74,51 @@ class OracleSourceConfigurationSupplierImpl : OracleSourceConfigurationSupplier 
 
     @JsonProperty("connection_data")
     @ConfigurationBuilder(configurationPrefix = "connection_data")
-    val connectionData = ConnectionDataImpl()
+    val connectionData = ConnectionDataPOJO()
 
     @JsonProperty("encryption")
     @ConfigurationBuilder(configurationPrefix = "encryption")
-    val encryption = EncryptionImpl()
+    val encryption = EncryptionPOJO()
 
     @JsonProperty("tunnel_method")
     @ConfigurationBuilder(configurationPrefix = "tunnel_method")
-    var tunnelMethod = SshTunnelConfigurationSupplierImpl()
+    var tunnelMethod = SshTunnelConfigurationPOJO()
+}
 
-    @ConfigurationProperties("airbyte.connector.config.connection_data")
-    class ConnectionDataImpl {
+@ConfigurationProperties("airbyte.connector.config.connection_data")
+private class ConnectionDataPOJO {
 
-        @JsonProperty("connection_type")
-        var connectionType: String? = null
+    @JsonProperty("connection_type")
+    var connectionType: String? = null
 
-        @JsonProperty("service_name")
-        var serviceName: String? = null
+    @JsonProperty("service_name")
+    var serviceName: String? = null
 
-        @JsonProperty("sid")
-        var sid: String? = null
-    }
+    @JsonProperty("sid")
+    var sid: String? = null
+}
 
-    @ConfigurationProperties("airbyte.connector.config.encryption")
-    class EncryptionImpl {
+@ConfigurationProperties("airbyte.connector.config.encryption")
+private class EncryptionPOJO {
 
-        @JsonProperty("encryption_method")
-        var encryptionMethod: String = "unencrypted"
+    @JsonProperty("encryption_method")
+    var encryptionMethod: String = "unencrypted"
 
-        @JsonProperty("encryption_algorithm")
-        var encryptionAlgorithm: String? = null
+    @JsonProperty("encryption_algorithm")
+    var encryptionAlgorithm: String? = null
 
-        @JsonProperty("ssl_certificate")
-        var sslCertificate: String? = null
-    }
+    @JsonProperty("ssl_certificate")
+    var sslCertificate: String? = null
 }
 
 private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
     val json: JsonNode = Jsons.deserialize(jsonString)
-
     val schema = Jsons.deserialize(MoreResources.readBytes("spec.json"))
     val results = JsonSchemaValidator().validate(schema, json)
     if (results.isNotEmpty()) {
         throw RuntimeException("config json schema violation: ${results.first()}")
     }
-    val pojo = Jsons.`object`(json, OracleSourceConfigurationSupplierImpl::class.java)
+    val pojo = Jsons.`object`(json, ConfigurationPOJO::class.java)
     val realHost: String = pojo.host!!
     val realPort: Int = pojo.port!!
     val realUser: String = pojo.username!!

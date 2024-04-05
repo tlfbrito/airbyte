@@ -36,7 +36,6 @@ class ConnectorConfigurationPropertySource(commandLine: CommandLine) :
         const val CONNECTOR_CONFIG_PREFIX: String = "airbyte.connector.config"
         const val CONNECTOR_CATALOG_PREFIX: String = "airbyte.connector.catalog"
         const val CONNECTOR_STATE_PREFIX: String = "airbyte.connector.state"
-        const val JSON_SUFFIX: String = "json"
 
         private fun resolveValues(commandLine: CommandLine): Map<String, Any> {
             val ops: List<OperationType> = OperationType.entries.filter { commandLine.optionValue(it.name.lowercase()) != null }
@@ -69,7 +68,7 @@ class ConnectorConfigurationPropertySource(commandLine: CommandLine) :
                     continue
                 }
                 val json: JsonNode = maybeJson.get()
-                values["$prefix.$JSON_SUFFIX"] = Jsons.serialize(json)
+                values["$prefix.json"] = Jsons.serialize(json)
             }
             return values
         }

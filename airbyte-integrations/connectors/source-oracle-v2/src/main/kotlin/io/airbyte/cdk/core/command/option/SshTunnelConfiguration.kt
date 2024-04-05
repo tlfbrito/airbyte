@@ -37,7 +37,7 @@ data class SshPasswordAuthTunnelConfiguration(
 interface SshTunnelConfigurationSupplier : Supplier<SshTunnelConfiguration>
 
 @ConfigurationProperties("airbyte.connector.config.tunnel_method")
-class SshTunnelConfigurationSupplierImpl : SshTunnelConfigurationSupplier {
+class SshTunnelConfigurationPOJO : SshTunnelConfigurationSupplier {
 
     private val validated: SshTunnelConfiguration by lazy {
         when (SshTunnel.TunnelMethod.valueOf(tunnelMethod.uppercase())) {

@@ -4,9 +4,11 @@
 
 package io.airbyte.cdk.core.command.option
 
+import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
 import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.ConfiguredAirbyteCatalog
 import io.micronaut.context.annotation.ConfigurationProperties
+import io.micronaut.context.annotation.Requires
 import java.util.function.Supplier
 
 interface ConfiguredAirbyteCatalogSupplier : Supplier<ConfiguredAirbyteCatalog>
@@ -16,7 +18,7 @@ interface ConfiguredAirbyteCatalogSupplier : Supplier<ConfiguredAirbyteCatalog>
  * connector CLI as an argument.
  */
 @ConfigurationProperties("airbyte.connector.catalog")
-class ConfiguredAirbyteCatalogSupplierImpl : ConfiguredAirbyteCatalogSupplier {
+class ConfiguredAirbyteCatalogPOJO : ConfiguredAirbyteCatalogSupplier {
 
     var json: String = "{}"
 
