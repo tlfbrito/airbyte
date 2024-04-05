@@ -4,8 +4,6 @@
 
 package io.airbyte.cdk.core.operation
 
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
-import io.airbyte.cdk.core.operation.executor.OperationExecutor
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
@@ -16,20 +14,14 @@ private val logger = KotlinLogging.logger {}
 
 @Singleton
 @Named("writeOperation")
-@Requires(
-    property = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION,
-    value = "write",
-)
+@Requires(property = CONNECTOR_OPERATION, value = "write")
 @Requires(env = ["destination"])
-class DefaultWriteOperation(
-    @Named("writeOperationExecutor") private val operationExecutor: OperationExecutor,
-) : Operation {
-    override fun type(): OperationType {
-        return OperationType.WRITE
-    }
+class DefaultWriteOperation : Operation {
 
-    override fun execute(): Result<Sequence<AirbyteMessage>> {
+    override val type = OperationType.WRITE
+
+    override fun execute(): Result<Unit> {
         logger.info { "Using default write operation." }
-        return operationExecutor.execute()
+        return Result.success(Unit)
     }
 }

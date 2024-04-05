@@ -6,7 +6,6 @@ package io.airbyte.cdk.core
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 import io.airbyte.cdk.core.operation.Operation
-import io.airbyte.cdk.core.operation.OperationType
 import io.airbyte.cdk.integrations.base.AirbyteTraceMessageUtility
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
 import io.airbyte.cdk.integrations.util.ApmTraceUtils
@@ -47,10 +46,6 @@ class IntegrationCommand : Runnable {
     @Value("\${micronaut.application.name}") lateinit var connectorName: String
 
     @Inject lateinit var operation: Operation
-
-    @Inject
-    @Named("outputRecordCollector")
-    lateinit var outputRecordCollector: Consumer<AirbyteMessage>
 
     @CommandLine.Option(
         names = ["--spec"],
@@ -123,43 +118,26 @@ class IntegrationCommand : Runnable {
     @CommandLine.Spec lateinit var commandSpec: CommandLine.Model.CommandSpec
 
     override fun run() {
-        val result = operation.execute()
-        result.onSuccess { airbyteMessageSequence ->
-            airbyteMessageSequence.forEach(outputRecordCollector::accept)
-        }
-        result.onFailure {
+        try {
+            operation.execute()
+        } catch (e: Throwable) {
             commandSpec.commandLine().usage(System.out)
             // Add new line between usage menu and error
             println("")
-            logger.error(it) { "Unable to perform operation." }
+            logger.error(e) { "Unable to perform operation." }
             // Many of the exceptions thrown are nested inside layers of RuntimeExceptions. An
             // attempt is made to find the root exception that corresponds to a configuration
             // error. If that does not exist, we just return the original exception.
-            ApmTraceUtils.addExceptionToTrace(it)
-            val rootThrowable = ConnectorExceptionUtil.getRootConfigError(Exception(it))
+            ApmTraceUtils.addExceptionToTrace(e)
+            val rootThrowable = ConnectorExceptionUtil.getRootConfigError(Exception(e))
             val displayMessage = ConnectorExceptionUtil.getDisplayMessage(rootThrowable)
             // If the source connector throws a config error, a trace message with the relevant
             // message should
             // be surfaced.
             if (ConnectorExceptionUtil.isConfigError(rootThrowable)) {
-                AirbyteTraceMessageUtility.emitConfigErrorTrace(it, displayMessage)
-            }
-            if (isCheck) {
-                // Currently, special handling is required for the CHECK case since the user display
-                // information in the trace message is not properly surfaced to the FE. In the
-                // future, we can remove this and just throw an exception.
-                outputRecordCollector.accept(
-                    AirbyteMessage()
-                        .withType(AirbyteMessage.Type.CONNECTION_STATUS)
-                        .withConnectionStatus(
-                            AirbyteConnectionStatus()
-                                .withStatus(AirbyteConnectionStatus.Status.FAILED)
-                                .withMessage(displayMessage),
-                        ),
-                )
+                AirbyteTraceMessageUtility.emitConfigErrorTrace(e, displayMessage)
             }
         }
-
         logger.info { "Completed integration: $connectorName" }
     }
 }

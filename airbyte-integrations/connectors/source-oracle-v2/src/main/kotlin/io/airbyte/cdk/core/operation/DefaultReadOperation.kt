@@ -4,8 +4,6 @@
 
 package io.airbyte.cdk.core.operation
 
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
-import io.airbyte.cdk.core.operation.executor.OperationExecutor
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
@@ -16,20 +14,14 @@ private val logger = KotlinLogging.logger {}
 
 @Singleton
 @Named("readOperation")
-@Requires(
-    property = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION,
-    value = "read",
-)
-//@Requires(env = ["source"])
-class DefaultReadOperation(
-    @Named("readOperationExecutor") private val operationExecutor: OperationExecutor,
-) : Operation {
-    override fun type(): OperationType {
-        return OperationType.READ
-    }
+@Requires(property = CONNECTOR_OPERATION, value = "read")
+@Requires(env = ["source"])
+class DefaultReadOperation : Operation {
 
-    override fun execute(): Result<Sequence<AirbyteMessage>> {
+    override val type = OperationType.READ
+
+    override fun execute(): Result<Unit> {
         logger.info { "Using default read operation." }
-        return operationExecutor.execute()
+        return Result.success(Unit)
     }
 }

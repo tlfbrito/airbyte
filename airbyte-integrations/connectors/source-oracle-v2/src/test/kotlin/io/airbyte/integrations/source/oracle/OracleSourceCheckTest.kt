@@ -1,30 +1,21 @@
 package io.airbyte.integrations.source.oracle
 
-import io.airbyte.cdk.core.IntegrationCommand
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
-import io.airbyte.cdk.core.operation.Operation
-import io.airbyte.cdk.core.operation.OperationType
+import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
 import io.airbyte.commons.io.IOs
-import io.airbyte.integrations.source.oracle.operation.executor.OracleSourceCheckOperationExecutor
-import io.airbyte.protocol.models.v0.AirbyteMessage
+import io.airbyte.integrations.source.oracle.operation.executor.OracleSourceCheckOperation
 import io.micronaut.context.annotation.Property
 import io.micronaut.context.env.Environment
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
 import jakarta.inject.Inject
 import java.io.File
-import java.util.function.Consumer
 import org.junit.jupiter.api.Test
-import picocli.CommandLine
 
 @MicronautTest(environments = [Environment.TEST, "source"])
-@Property(name = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION, value = "check")
+@Property(name = CONNECTOR_OPERATION, value = "check")
 class OracleSourceCheckTest {
 
     @Inject
-    lateinit var checkOperationExecutor: OracleSourceCheckOperationExecutor
+    lateinit var checkOperation: OracleSourceCheckOperation
 
     @Test
     @Property(name = "airbyte.connector.config.host", value = "localhost")
@@ -38,7 +29,7 @@ class OracleSourceCheckTest {
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "FOO")
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_host", value = "localhost")
     internal fun testConfig() {
-        checkOperationExecutor.execute()
+        checkOperation.execute()
 
     }
 

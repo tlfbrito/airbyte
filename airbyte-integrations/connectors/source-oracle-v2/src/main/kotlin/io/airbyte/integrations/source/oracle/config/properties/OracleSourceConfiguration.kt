@@ -3,6 +3,10 @@ package io.airbyte.integrations.source.oracle.config.properties
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
+import io.airbyte.cdk.core.command.option.CONNECTOR_CONFIG_PREFIX
+import io.airbyte.cdk.core.command.option.ConnectorConfiguration
+import io.airbyte.cdk.core.command.option.ConnectorConfigurationSupplier
+import io.airbyte.cdk.core.command.option.SourceConnectorConfiguration
 import io.airbyte.cdk.core.command.option.SshKeyAuthTunnelConfiguration
 import io.airbyte.cdk.core.command.option.SshNoTunnelConfiguration
 import io.airbyte.cdk.core.command.option.SshPasswordAuthTunnelConfiguration
@@ -11,6 +15,7 @@ import io.airbyte.cdk.core.command.option.SshTunnelConfigurationPOJO
 import io.airbyte.commons.io.IOs
 import io.airbyte.commons.json.Jsons
 import io.airbyte.commons.resources.MoreResources
+import io.airbyte.protocol.models.v0.AirbyteStateMessage
 import io.airbyte.validation.json.JsonSchemaValidator
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.ConfigurationBuilder
@@ -31,19 +36,23 @@ import org.bouncycastle.util.io.pem.PemReader
 
 private val logger = KotlinLogging.logger {}
 
-data class OracleSourceConfiguration(
-    val realHost: String,
-    val realPort: Int,
+data class OracleSourceConfiguration (
+    override val realHost: String,
+    override val realPort: Int,
     val sshTunnel: SshTunnelConfiguration,
     val jdbcUrl: String,
     val jdbcProperties: Map<String, String>,
+    val defaultSchema: String,
     val schemas: List<String>
-)
+) : SourceConnectorConfiguration {
+    override fun getDefaultNamespace(): Optional<String> = Optional.of(defaultSchema)
 
-interface OracleSourceConfigurationSupplier : Supplier<OracleSourceConfiguration>
+    override val expectedStateType = AirbyteStateMessage.AirbyteStateType.STREAM
 
-@ConfigurationProperties("airbyte.connector.config")
-private class ConfigurationPOJO : OracleSourceConfigurationSupplier {
+}
+
+@ConfigurationProperties(CONNECTOR_CONFIG_PREFIX)
+private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceConfiguration> {
 
     @JsonIgnore
     var json: String? = null
@@ -64,7 +73,7 @@ private class ConfigurationPOJO : OracleSourceConfigurationSupplier {
     var username: String? = null
 
     @JsonProperty("password")
-    var password: Optional<String> = Optional.empty()
+    var password: String? = null
 
     @JsonProperty("schemas")
     var schemas: List<String> = listOf()
@@ -85,7 +94,7 @@ private class ConfigurationPOJO : OracleSourceConfigurationSupplier {
     var tunnelMethod = SshTunnelConfigurationPOJO()
 }
 
-@ConfigurationProperties("airbyte.connector.config.connection_data")
+@ConfigurationProperties("$CONNECTOR_CONFIG_PREFIX.connection_data")
 private class ConnectionDataPOJO {
 
     @JsonProperty("connection_type")
@@ -98,7 +107,7 @@ private class ConnectionDataPOJO {
     var sid: String? = null
 }
 
-@ConfigurationProperties("airbyte.connector.config.encryption")
+@ConfigurationProperties("$CONNECTOR_CONFIG_PREFIX.encryption")
 private class EncryptionPOJO {
 
     @JsonProperty("encryption_method")
@@ -121,7 +130,6 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
     val pojo = Jsons.`object`(json, ConfigurationPOJO::class.java)
     val realHost: String = pojo.host!!
     val realPort: Int = pojo.port!!
-    val realUser: String = pojo.username!!
     val sshTunnel: SshTunnelConfiguration = pojo.tunnelMethod.get()
     val (host, port) = when (sshTunnel) {
         is SshKeyAuthTunnelConfiguration -> sshTunnel.host to sshTunnel.port
@@ -198,13 +206,15 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
         "(ADDRESS=(PROTOCOL=${protocol})(HOST=${host})(PORT=${port}))" +
         "(CONNECT_DATA=(${connectionTypeName}=${connectionTypeValue}))" +
         ")"
+    val defaultSchema: String = pojo.username!!.uppercase()
     return OracleSourceConfiguration(
         realHost = realHost,
         realPort = realPort,
         sshTunnel = sshTunnel,
         jdbcUrl = jdbcUrl,
         jdbcProperties = jdbcProperties,
-        schemas = if (pojo.schemas.isEmpty()) listOf(realUser.uppercase()) else pojo.schemas,
+        defaultSchema = defaultSchema,
+        schemas = pojo.schemas.ifEmpty { listOf(defaultSchema) },
     )
 }
 

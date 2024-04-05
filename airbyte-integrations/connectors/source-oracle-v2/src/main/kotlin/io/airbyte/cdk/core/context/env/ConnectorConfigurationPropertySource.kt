@@ -5,6 +5,10 @@
 package io.airbyte.cdk.core.context.env
 
 import com.fasterxml.jackson.databind.JsonNode
+import io.airbyte.cdk.core.command.option.CONNECTOR_CATALOG_PREFIX
+import io.airbyte.cdk.core.command.option.CONNECTOR_CONFIG_PREFIX
+import io.airbyte.cdk.core.command.option.CONNECTOR_STATE_PREFIX
+import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
 import io.airbyte.cdk.core.operation.OperationType
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
 import io.airbyte.commons.json.Jsons
@@ -30,47 +34,42 @@ private val logger = KotlinLogging.logger {}
  * state as JSON read from the state file path argument, if present.</li> </ol>
  */
 class ConnectorConfigurationPropertySource(commandLine: CommandLine) :
-    MapPropertySource("connector", resolveValues(commandLine)) {
-    companion object {
-        const val CONNECTOR_OPERATION: String = "airbyte.connector.operation"
-        const val CONNECTOR_CONFIG_PREFIX: String = "airbyte.connector.config"
-        const val CONNECTOR_CATALOG_PREFIX: String = "airbyte.connector.catalog"
-        const val CONNECTOR_STATE_PREFIX: String = "airbyte.connector.state"
+    MapPropertySource("connector", resolveValues(commandLine))
 
-        private fun resolveValues(commandLine: CommandLine): Map<String, Any> {
-            val ops: List<OperationType> = OperationType.entries.filter { commandLine.optionValue(it.name.lowercase()) != null }
-            if (ops.isEmpty()) {
-                throw IllegalArgumentException("Command line is missing an operation.")
-            }
-            if (ops.size > 1) {
-                throw IllegalArgumentException("Command line has multiple operations: $ops")
-            }
-            val values: MutableMap<String, Any> = mutableMapOf()
-            values[CONNECTOR_OPERATION] = ops.first().name.lowercase()
-            for ((cliOptionKey, prefix) in mapOf(
-                JavaBaseConstants.ARGS_CONFIG_KEY to CONNECTOR_CONFIG_PREFIX,
-                JavaBaseConstants.ARGS_CATALOG_KEY to CONNECTOR_CATALOG_PREFIX,
-                JavaBaseConstants.ARGS_STATE_KEY to CONNECTOR_STATE_PREFIX,
-            )) {
-                val cliOptionValue = commandLine.optionValue(cliOptionKey) as String?
-                if (cliOptionValue.isNullOrBlank()) {
-                    continue
-                }
-                val jsonFile: File = Path.of(cliOptionValue).toFile()
-                if (!jsonFile.exists()) {
-                    logger.warn { "File '$jsonFile' not found for '$cliOptionKey'." }
-                    continue
-                }
-                val jsonString: String = jsonFile.readText()
-                val maybeJson: Optional<JsonNode> = Jsons.tryDeserialize(jsonString)
-                if (maybeJson.isEmpty) {
-                    logger.warn { "Invalid JSON for '$cliOptionValue'." }
-                    continue
-                }
-                val json: JsonNode = maybeJson.get()
-                values["$prefix.json"] = Jsons.serialize(json)
-            }
-            return values
-        }
+private fun resolveValues(commandLine: CommandLine): Map<String, Any> {
+    val ops: List<OperationType> = OperationType.entries.filter {
+        commandLine.optionValue(it.name.lowercase()) != null
     }
+    if (ops.isEmpty()) {
+        throw IllegalArgumentException("Command line is missing an operation.")
+    }
+    if (ops.size > 1) {
+        throw IllegalArgumentException("Command line has multiple operations: $ops")
+    }
+    val values: MutableMap<String, Any> = mutableMapOf()
+    values[CONNECTOR_OPERATION] = ops.first().name.lowercase()
+    for ((cliOptionKey, prefix) in mapOf(
+        JavaBaseConstants.ARGS_CONFIG_KEY to CONNECTOR_CONFIG_PREFIX,
+        JavaBaseConstants.ARGS_CATALOG_KEY to CONNECTOR_CATALOG_PREFIX,
+        JavaBaseConstants.ARGS_STATE_KEY to CONNECTOR_STATE_PREFIX,
+    )) {
+        val cliOptionValue = commandLine.optionValue(cliOptionKey) as String?
+        if (cliOptionValue.isNullOrBlank()) {
+            continue
+        }
+        val jsonFile: File = Path.of(cliOptionValue).toFile()
+        if (!jsonFile.exists()) {
+            logger.warn { "File '$jsonFile' not found for '$cliOptionKey'." }
+            continue
+        }
+        val jsonString: String = jsonFile.readText()
+        val maybeJson: Optional<JsonNode> = Jsons.tryDeserialize(jsonString)
+        if (maybeJson.isEmpty) {
+            logger.warn { "Invalid JSON for '$cliOptionValue'." }
+            continue
+        }
+        val json: JsonNode = maybeJson.get()
+        values["$prefix.json"] = Jsons.serialize(json)
+    }
+    return values
 }

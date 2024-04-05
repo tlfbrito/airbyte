@@ -4,45 +4,32 @@
 
 package io.airbyte.cdk.core.operation
 
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
-import io.airbyte.cdk.core.operation.executor.OperationExecutor
 import io.airbyte.protocol.models.v0.AirbyteConnectionStatus
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
 import jakarta.inject.Named
 import jakarta.inject.Singleton
+import java.util.function.Consumer
 
 private val logger = KotlinLogging.logger {}
 
 @Singleton
 @Named("checkOperation")
-@Requires(
-    property = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION,
-    value = "check",
-)
+@Requires(property = CONNECTOR_OPERATION, value = "check")
 class DefaultCheckOperation(
-    @Named("checkOperationExecutor") private val operationExecutor: OperationExecutor,
+    @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
 ) : Operation {
-    override fun type(): OperationType {
-        return OperationType.CHECK
-    }
 
-    override fun execute(): Result<Sequence<AirbyteMessage>> {
+    override val type = OperationType.CHECK
+
+    override fun execute(): Result<Unit> {
         logger.info { "Using default check operation." }
-        val result = operationExecutor.execute()
-        result.onFailure {
-            return Result.success(
-                sequenceOf(AirbyteMessage()
-                    .withType(AirbyteMessage.Type.CONNECTION_STATUS)
-                    .withConnectionStatus(
-                        AirbyteConnectionStatus()
-                            .withStatus(AirbyteConnectionStatus.Status.FAILED)
-                            .withMessage(it.message),
-                    ),
-                )
-            )
-        }
-        return result
+        outputRecordCollector.accept(
+            AirbyteMessage()
+                .withType(AirbyteMessage.Type.CONNECTION_STATUS)
+                .withConnectionStatus(AirbyteConnectionStatus()
+                    .withStatus(AirbyteConnectionStatus.Status.SUCCEEDED)))
+        return Result.success(Unit)
     }
 }

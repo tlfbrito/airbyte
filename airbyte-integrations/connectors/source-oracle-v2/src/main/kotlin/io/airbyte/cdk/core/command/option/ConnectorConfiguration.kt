@@ -4,21 +4,32 @@
 
 package io.airbyte.cdk.core.command.option
 
-import com.fasterxml.jackson.databind.JsonNode
-import io.airbyte.commons.json.Jsons
+import io.airbyte.protocol.models.v0.AirbyteStateMessage.AirbyteStateType
 import java.util.Optional
+import java.util.function.Supplier
+
+const val CONNECTOR_CONFIG_PREFIX: String = "airbyte.connector.config"
 
 /** Interface that defines a typed connector configuration. */
 interface ConnectorConfiguration {
 
-    fun getRealHost(): String
+    val realHost: String
 
-    fun getRealPort(): Int
+    val realPort: Int
 
     fun getDefaultNamespace(): Optional<String>
 
+}
+
+interface ConnectorConfigurationSupplier<T : ConnectorConfiguration> : Supplier<T>
+
+interface SourceConnectorConfiguration : ConnectorConfiguration {
+
+    val expectedStateType: AirbyteStateType
+}
+
+interface DestinationConnectorConfiguration : ConnectorConfiguration {
+
     fun getRawNamespace(): Optional<String>
 
-    fun toJson(): JsonNode =
-        Jsons.jsonNode(this)
 }

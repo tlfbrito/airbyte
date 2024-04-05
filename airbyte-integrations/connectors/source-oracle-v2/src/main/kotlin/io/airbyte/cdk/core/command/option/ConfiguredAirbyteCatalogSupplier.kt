@@ -13,11 +13,13 @@ import java.util.function.Supplier
 
 interface ConfiguredAirbyteCatalogSupplier : Supplier<ConfiguredAirbyteCatalog>
 
+const val CONNECTOR_CATALOG_PREFIX: String = "airbyte.connector.catalog"
+
 /**
  * Micronaut configured properties holder for the Airbyte configured catalog provided to the
  * connector CLI as an argument.
  */
-@ConfigurationProperties("airbyte.connector.catalog")
+@ConfigurationProperties(CONNECTOR_CATALOG_PREFIX)
 class ConfiguredAirbyteCatalogPOJO : ConfiguredAirbyteCatalogSupplier {
 
     var json: String = "{}"

@@ -4,32 +4,32 @@
 
 package io.airbyte.cdk.core.operation
 
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
-import io.airbyte.cdk.core.operation.executor.OperationExecutor
+import io.airbyte.protocol.models.v0.AirbyteCatalog
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
 import jakarta.inject.Named
 import jakarta.inject.Singleton
+import java.util.function.Consumer
 
 private val logger = KotlinLogging.logger {}
 
 @Singleton
 @Named("discoverOperation")
-@Requires(
-    property = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION,
-    value = "discover",
-)
+@Requires(property = CONNECTOR_OPERATION, value = "discover")
 @Requires(env = ["source"])
 class DefaultDiscoverOperation(
-    @Named("discoverOperationExecutor") private val operationExecutor: OperationExecutor,
+    @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
 ) : Operation {
-    override fun type(): OperationType {
-        return OperationType.DISCOVER
-    }
 
-    override fun execute(): Result<Sequence<AirbyteMessage>> {
-        logger.info { "Using default check operation." }
-        return operationExecutor.execute()
+    override val type = OperationType.DISCOVER
+
+    override fun execute(): Result<Unit> {
+        logger.info { "Using default discover operation." }
+        outputRecordCollector.accept(
+            AirbyteMessage()
+                .withType(AirbyteMessage.Type.CATALOG)
+                .withCatalog(AirbyteCatalog()))
+        return Result.success(Unit)
     }
 }

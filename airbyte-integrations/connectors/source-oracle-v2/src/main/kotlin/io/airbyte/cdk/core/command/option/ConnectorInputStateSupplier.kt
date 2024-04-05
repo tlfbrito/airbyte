@@ -2,20 +2,20 @@ package io.airbyte.cdk.core.command.option
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
 import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.AirbyteStateMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.ConfigurationProperties
-import io.micronaut.context.annotation.Requires
 import java.util.function.Supplier
 
 private val logger = KotlinLogging.logger {}
 
-interface AirbyteConnectorStateSupplier : Supplier<List<AirbyteStateMessage>>
+interface ConnectorInputStateSupplier : Supplier<List<AirbyteStateMessage>>
 
-@ConfigurationProperties("airbyte.connector.state")
-class AirbyteStateMessageListPOJO : AirbyteConnectorStateSupplier {
+const val CONNECTOR_STATE_PREFIX: String = "airbyte.connector.state"
+
+@ConfigurationProperties(CONNECTOR_STATE_PREFIX)
+class AirbyteStateMessageListPOJO : ConnectorInputStateSupplier {
 
     var json: String = "[]"
 

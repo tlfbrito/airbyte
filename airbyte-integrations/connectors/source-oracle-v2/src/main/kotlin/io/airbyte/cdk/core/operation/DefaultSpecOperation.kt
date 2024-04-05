@@ -4,31 +4,42 @@
 
 package io.airbyte.cdk.core.operation
 
-import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
-import io.airbyte.cdk.core.operation.executor.OperationExecutor
+import io.airbyte.commons.json.Jsons
+import io.airbyte.commons.resources.MoreResources
 import io.airbyte.protocol.models.v0.AirbyteMessage
+import io.airbyte.protocol.models.v0.ConnectorSpecification
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
+import io.micronaut.context.annotation.Value
 import jakarta.inject.Named
 import jakarta.inject.Singleton
+import java.util.function.Consumer
 
 private val logger = KotlinLogging.logger {}
 
 @Singleton
 @Named("specOperation")
-@Requires(
-    property = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION,
-    value = "spec",
-)
+@Requires(property = CONNECTOR_OPERATION, value = "spec")
 class DefaultSpecOperation(
-    @Named("specOperationExecutor") private val operationExecutor: OperationExecutor,
+    @Value("\${airbyte.connector.specification.file:spec.json}") private val specFile: String,
+    @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
 ) : Operation {
-    override fun type(): OperationType {
-        return OperationType.SPEC
-    }
 
-    override fun execute(): Result<Sequence<AirbyteMessage>> {
+    override val type = OperationType.SPEC
+
+    override fun execute(): Result<Unit> {
         logger.info { "Using default spec operation." }
-        return operationExecutor.execute()
+        val spec: ConnectorSpecification
+        try {
+            val specString: String = MoreResources.readResource(specFile)
+            spec = Jsons.deserialize(specString, ConnectorSpecification::class.java)
+        } catch (e: Exception) {
+            return Result.failure(OperationExecutionException("Failed to retrieve connector specification from resource '$specFile'.", e))
+        }
+        outputRecordCollector.accept(
+            AirbyteMessage()
+                .withType(AirbyteMessage.Type.SPEC)
+                .withSpec(spec))
+        return Result.success(Unit)
     }
 }

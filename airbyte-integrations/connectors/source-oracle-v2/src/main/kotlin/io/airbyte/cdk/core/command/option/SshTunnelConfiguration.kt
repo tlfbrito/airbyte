@@ -36,7 +36,7 @@ data class SshPasswordAuthTunnelConfiguration(
 
 interface SshTunnelConfigurationSupplier : Supplier<SshTunnelConfiguration>
 
-@ConfigurationProperties("airbyte.connector.config.tunnel_method")
+@ConfigurationProperties("$CONNECTOR_CONFIG_PREFIX.tunnel_method")
 class SshTunnelConfigurationPOJO : SshTunnelConfigurationSupplier {
 
     private val validated: SshTunnelConfiguration by lazy {
