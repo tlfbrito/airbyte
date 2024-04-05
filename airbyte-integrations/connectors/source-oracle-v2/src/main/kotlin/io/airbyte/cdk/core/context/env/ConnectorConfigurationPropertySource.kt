@@ -57,30 +57,21 @@ class ConnectorConfigurationPropertySource(commandLine: CommandLine) :
                 if (cliOptionValue.isNullOrBlank()) {
                     continue
                 }
-                val propertyFile: File = Path.of(cliOptionValue).toFile()
-                if (!propertyFile.exists()) {
-                    logger.warn { "Property file '$propertyFile' not found for '$cliOptionKey'." }
+                val jsonFile: File = Path.of(cliOptionValue).toFile()
+                if (!jsonFile.exists()) {
+                    logger.warn { "File '$jsonFile' not found for '$cliOptionKey'." }
                     continue
                 }
-                val maybeJson: Optional<JsonNode> = Jsons.tryDeserialize(propertyFile.readText())
+                val jsonString: String = jsonFile.readText()
+                val maybeJson: Optional<JsonNode> = Jsons.tryDeserialize(jsonString)
                 if (maybeJson.isEmpty) {
                     logger.warn { "Invalid JSON for '$cliOptionValue'." }
                     continue
                 }
                 val json: JsonNode = maybeJson.get()
                 values["$prefix.$JSON_SUFFIX"] = Jsons.serialize(json)
-                walk(json, prefix, values)
             }
             return values
-        }
-
-        private fun walk(json: JsonNode, prefix: String, values: MutableMap<String, Any>) {
-            json.fields().forEachRemaining { e ->
-                if (e.value.isObject) {
-                    walk(e.value, "$prefix.${e.key}", values)
-                }
-                values["$prefix.${e.key}"] = e.value.asText()
-            }
         }
     }
 }

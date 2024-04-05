@@ -10,11 +10,15 @@ import java.util.Optional
 
 /** Interface that defines a typed connector configuration. */
 interface ConnectorConfiguration {
+
+    fun getRealHost(): String
+
+    fun getRealPort(): Int
+
     fun getDefaultNamespace(): Optional<String>
 
     fun getRawNamespace(): Optional<String>
 
-    fun toJson(): JsonNode {
-        return Jsons.jsonNode(this)
-    }
+    fun toJson(): JsonNode =
+        Jsons.jsonNode(this)
 }

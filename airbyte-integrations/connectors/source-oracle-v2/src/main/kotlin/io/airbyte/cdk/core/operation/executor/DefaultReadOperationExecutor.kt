@@ -10,7 +10,10 @@ import io.airbyte.cdk.core.util.ShutdownUtils
 import io.airbyte.commons.util.AutoCloseableIterator
 import io.airbyte.protocol.models.AirbyteStreamNameNamespacePair
 import io.airbyte.protocol.models.v0.AirbyteMessage
+import io.airbyte.protocol.models.v0.ConfiguredAirbyteCatalog
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.micronaut.context.annotation.Bean
+import io.micronaut.context.annotation.ConfigurationProperties
 import io.micronaut.context.annotation.Requires
 import jakarta.inject.Named
 import jakarta.inject.Singleton
@@ -26,51 +29,20 @@ private val logger = KotlinLogging.logger {}
     property = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION,
     value = "read",
 )
-@Requires(env = ["source"])
+//@Requires(env = ["source"])
 class DefaultReadOperationExecutor(
     private val messageIterator: Optional<AutoCloseableIterator<AirbyteMessage>>,
     @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>,
     private val shutdownUtils: ShutdownUtils,
 ) : OperationExecutor {
+
+    @Bean
+    @ConfigurationProperties("airbyte.connector.catalog.json")
+    fun configuredCatalog(): ConfiguredAirbyteCatalog = ConfiguredAirbyteCatalog()
+
     override fun execute(): Result<Sequence<AirbyteMessage>> {
-        logger.info { "Using default read operation executor." }
-        try {
-            if (messageIterator.isPresent) {
-                val iterator = messageIterator.get()
-                try {
-                    iterator.use { i ->
-                        i.airbyteStream.ifPresent { s: AirbyteStreamNameNamespacePair? ->
-                            logger.debug { "Producing messages for stream $s..." }
-                        }
-                        i.forEachRemaining(outputRecordCollector)
-                        i.airbyteStream.ifPresent { s: AirbyteStreamNameNamespacePair? ->
-                            logger.debug { "Finished producing messages for stream $s..." }
-                        }
-                    }
-                } catch (e: Exception) {
-                    return Result.failure(
-                        OperationExecutionException("Failed to read from connector.", e)
-                    )
-                }
-            } else {
-                return Result.failure(
-                    OperationExecutionException(
-                        "Failed to read from connector.",
-                        IllegalArgumentException(
-                            "Read operation supported, but message iterator does not exist."
-                        ),
-                    ),
-                )
-            }
-            return Result.success(sequenceOf())
-        } finally {
-            shutdownUtils.stopOrphanedThreads(
-                ShutdownUtils.EXIT_HOOK,
-                ShutdownUtils.INTERRUPT_THREAD_DELAY_MINUTES,
-                TimeUnit.MINUTES,
-                ShutdownUtils.EXIT_THREAD_DELAY_MINUTES,
-                TimeUnit.MINUTES,
-            )
-        }
+        val catalog = configuredCatalog()
+        logger.info { "$catalog" }
+        return Result.success(sequenceOf())
     }
 }

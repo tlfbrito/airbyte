@@ -3,6 +3,7 @@ package io.airbyte.integrations.source.oracle.operation.executor
 import io.airbyte.cdk.core.context.env.ConnectorConfigurationPropertySource
 import io.airbyte.cdk.core.operation.executor.OperationExecutor
 import io.airbyte.integrations.source.oracle.config.properties.OracleSourceConfiguration
+import io.airbyte.integrations.source.oracle.config.properties.OracleSourceConfigurationSupplier
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.micronaut.context.annotation.Primary
 import io.micronaut.context.annotation.Requires
@@ -17,9 +18,11 @@ import jakarta.inject.Singleton
     value = "check",
 )
 @Requires(notEnv = ["cloud"])
-class OracleSourceCheckOperationExecutor(private val configuration: OracleSourceConfiguration) : OperationExecutor {
+class OracleSourceCheckOperationExecutor(private val configurationSupplier: OracleSourceConfigurationSupplier) : OperationExecutor {
 
     override fun execute(): Result<Sequence<AirbyteMessage>> {
-        TODO("Not yet implemented")
+        val configuration = configurationSupplier.get()
+        println(configuration.toString())
+        TODO()
     }
 }

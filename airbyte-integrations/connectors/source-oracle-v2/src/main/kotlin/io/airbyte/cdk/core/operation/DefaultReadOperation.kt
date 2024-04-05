@@ -20,7 +20,7 @@ private val logger = KotlinLogging.logger {}
     property = ConnectorConfigurationPropertySource.CONNECTOR_OPERATION,
     value = "read",
 )
-@Requires(env = ["source"])
+//@Requires(env = ["source"])
 class DefaultReadOperation(
     @Named("readOperationExecutor") private val operationExecutor: OperationExecutor,
 ) : Operation {
