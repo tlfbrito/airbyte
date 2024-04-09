@@ -1,6 +1,7 @@
 package io.airbyte.integrations.source.oracle
 
 import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
+import io.airbyte.cdk.core.operation.DefaultCheckOperation
 import io.airbyte.commons.io.IOs
 import io.micronaut.context.annotation.Property
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
@@ -13,20 +14,18 @@ import org.junit.jupiter.api.Test
 class OracleSourceCheckTest {
 
     @Inject
-    lateinit var checkOperation: OracleSourceCheckOperation
+    lateinit var checkOperation: DefaultCheckOperation
 
     @Test
     @Property(name = "airbyte.connector.config.host", value = "localhost")
-    @Property(name = "airbyte.connector.config.port", value = "12345")
-    @Property(name = "airbyte.connector.config.username", value = "bob")
-    @Property(name = "airbyte.connector.config.schemas", value = "foo,bar")
-    @Property(name = "airbyte.connector.config.jdbc_url_params", value = "hello")
+    @Property(name = "airbyte.connector.config.port", value = "1521")
+    @Property(name = "airbyte.connector.config.username", value = "FOO")
+    @Property(name = "airbyte.connector.config.password", value = "BAR")
     @Property(name = "airbyte.connector.config.connection_data.connection_type", value = "service_name")
-    @Property(name = "airbyte.connector.config.connection_data.service_name", value = "myname")
+    @Property(name = "airbyte.connector.config.connection_data.service_name", value = "FREEPDB1")
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "NO_TUNNEL")
     internal fun testConfig() {
         checkOperation.execute()
-
     }
 
     @Test
@@ -91,3 +90,4 @@ class OracleSourceCheckTest {
         OracleSource.main(arrayOf("--read", "--config", configFile.toString() ,"--catalog", catalogFile.toString()))
     }
 }
+

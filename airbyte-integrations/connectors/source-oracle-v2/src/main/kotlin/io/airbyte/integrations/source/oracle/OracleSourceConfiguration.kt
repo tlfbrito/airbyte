@@ -12,6 +12,7 @@ import io.airbyte.cdk.core.command.SshPasswordAuthTunnelConfiguration
 import io.airbyte.cdk.core.command.SshTunnelConfiguration
 import io.airbyte.cdk.core.command.SshTunnelConfigurationPOJO
 import io.airbyte.commons.exceptions.ConfigErrorException
+import io.airbyte.commons.exceptions.ConnectionErrorException
 import io.airbyte.commons.io.IOs
 import io.airbyte.commons.json.Jsons
 import io.airbyte.commons.resources.MoreResources
@@ -28,7 +29,12 @@ import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 import java.security.cert.Certificate
 import java.security.cert.CertificateFactory
+import java.sql.Connection
+import java.sql.DriverManager
+import java.sql.SQLException
 import java.util.*
+import java.util.function.Consumer
+import oracle.jdbc.OracleDatabaseMetaData
 import org.apache.commons.lang3.RandomStringUtils
 import org.bouncycastle.util.io.pem.PemReader
 
@@ -38,10 +44,10 @@ data class OracleSourceConfiguration (
         override val realHost: String,
         override val realPort: Int,
         override val sshTunnel: SshTunnelConfiguration,
-        val jdbcUrl: String,
-        val jdbcProperties: Map<String, String>,
+        override val jdbcUrl: String,
+        override val jdbcProperties: Map<String, String>,
         val defaultSchema: String,
-        val schemas: List<String>
+        override val schemas: List<String>
 ) : SourceConnectorConfiguration {
     override fun getDefaultNamespace(): Optional<String> = Optional.of(defaultSchema)
 
@@ -135,6 +141,8 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
         is SshNoTunnelConfiguration -> realHost to realPort
     }
     val jdbcProperties = mutableMapOf<String, String>()
+    jdbcProperties["user"] = pojo.username!!
+    pojo.password?.let { jdbcProperties["password"] = it }
     /*
         * The property useFetchSizeWithLongColumn required to select LONG or LONG RAW columns. Oracle
         * recommends avoiding LONG and LONG RAW columns. Use LOB instead. They are included in Oracle
@@ -192,18 +200,15 @@ private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
         jdbcProperties["oracle.net.encryption_client"] = "REQUIRED"
         jdbcProperties["oracle.net.encryption_types_client"] = "( $algorithm )"
     }
-    // Determine connection data.
-    val connectionTypeValue: String = when (pojo.connectionData.connectionType) {
-        "service_name" -> pojo.connectionData.serviceName!!
-        "sid" -> pojo.connectionData.sid!!
+    // Build JDBC URL
+    val address = "(ADDRESS=(PROTOCOL=${protocol})(HOST=${host})(PORT=${port}))"
+    val connectData: String = when (pojo.connectionData.connectionType) {
+        null -> ""
+        "service_name" -> "(CONNECT_DATA=(SERVICE_NAME=${pojo.connectionData.serviceName!!}))"
+        "sid" -> "(CONNECT_DATA=(SID=${pojo.connectionData.sid!!}))"
         else -> throw ConfigErrorException("config does not specify a valid connection_type")
     }
-    val connectionTypeName: String = pojo.connectionData.connectionType!!
-    // Build URL and return.
-    val jdbcUrl: String = "jdbc:oracle:thin:@(DESCRIPTION=" +
-        "(ADDRESS=(PROTOCOL=${protocol})(HOST=${host})(PORT=${port}))" +
-        "(CONNECT_DATA=(${connectionTypeName}=${connectionTypeValue}))" +
-        ")"
+    val jdbcUrl = "jdbc:oracle:thin:@(DESCRIPTION=${address}${connectData})"
     val defaultSchema: String = pojo.username!!.uppercase()
     return OracleSourceConfiguration(
         realHost = realHost,

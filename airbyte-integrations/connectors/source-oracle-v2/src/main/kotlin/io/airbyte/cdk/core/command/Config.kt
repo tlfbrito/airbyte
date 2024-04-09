@@ -15,6 +15,8 @@ import io.micronaut.context.annotation.Requires
 import io.micronaut.context.event.ApplicationEventListener
 import io.micronaut.context.event.StartupEvent
 import jakarta.inject.Singleton
+import java.sql.Connection
+import java.sql.DriverManager
 import java.util.*
 import java.util.function.Supplier
 
@@ -26,9 +28,7 @@ const val CONNECTOR_CONFIG_PREFIX: String = "airbyte.connector.config"
 interface ConnectorConfiguration {
 
     val realHost: String
-
     val realPort: Int
-
     val sshTunnel: SshTunnelConfiguration
 
     fun getDefaultNamespace(): Optional<String>
@@ -40,6 +40,15 @@ interface ConnectorConfigurationSupplier<T : ConnectorConfiguration> : Supplier<
 interface SourceConnectorConfiguration : ConnectorConfiguration {
 
     val expectedStateType: AirbyteStateType
+
+    val jdbcUrl: String
+    val jdbcProperties: Map<String, String>
+
+    val schemas: List<String>
+
+    fun createConnection(): Connection =
+        DriverManager.getConnection(jdbcUrl, Properties().apply { putAll(jdbcProperties) })
+            .also { it.isReadOnly = true }
 }
 
 interface DestinationConnectorConfiguration : ConnectorConfiguration {
