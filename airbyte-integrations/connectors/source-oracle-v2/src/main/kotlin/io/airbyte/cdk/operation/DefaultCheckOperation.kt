@@ -33,7 +33,8 @@ class DefaultCheckOperation(
         outputRecordCollector.accept(
             AirbyteMessage()
                 .withType(AirbyteMessage.Type.CONNECTION_STATUS)
-                .withConnectionStatus(doCheck()))
+                .withConnectionStatus(doCheck())
+        )
     }
 
     override fun close() {
@@ -46,11 +47,13 @@ class DefaultCheckOperation(
         try {
             tableNames = metadataQuerier.tableNames()
         } catch (e: SQLException) {
-            val message: String = listOfNotNull(
-                e.sqlState?.let { "State code: $it" },
-                e.errorCode.takeIf { it != 0 }?.let { "Error code: $it" },
-                e.message?.let { "Message : $it" },
-            ).joinToString(separator = "; ")
+            val message: String =
+                listOfNotNull(
+                        e.sqlState?.let { "State code: $it" },
+                        e.errorCode.takeIf { it != 0 }?.let { "Error code: $it" },
+                        e.message?.let { "Message : $it" },
+                    )
+                    .joinToString(separator = "; ")
             logger.debug(e) { "Table name discovery query failed with exception." }
             return AirbyteConnectionStatus()
                 .withStatus(AirbyteConnectionStatus.Status.FAILED)
@@ -71,8 +74,7 @@ class DefaultCheckOperation(
                 continue
             }
             logger.info { "Query successful." }
-            return AirbyteConnectionStatus()
-                .withStatus(AirbyteConnectionStatus.Status.SUCCEEDED)
+            return AirbyteConnectionStatus().withStatus(AirbyteConnectionStatus.Status.SUCCEEDED)
         }
         return AirbyteConnectionStatus()
             .withStatus(AirbyteConnectionStatus.Status.FAILED)

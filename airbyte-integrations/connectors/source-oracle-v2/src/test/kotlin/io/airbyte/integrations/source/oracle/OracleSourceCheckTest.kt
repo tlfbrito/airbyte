@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+ */
+
 package io.airbyte.integrations.source.oracle
 
 import io.airbyte.cdk.operation.CONNECTOR_OPERATION
@@ -13,15 +17,17 @@ import org.junit.jupiter.api.Test
 @Property(name = CONNECTOR_OPERATION, value = "check")
 class OracleSourceCheckTest {
 
-    @Inject
-    lateinit var checkOperation: DefaultCheckOperation
+    @Inject lateinit var checkOperation: DefaultCheckOperation
 
     @Test
     @Property(name = "airbyte.connector.config.host", value = "localhost")
     @Property(name = "airbyte.connector.config.port", value = "1521")
     @Property(name = "airbyte.connector.config.username", value = "FOO")
     @Property(name = "airbyte.connector.config.password", value = "BAR")
-    @Property(name = "airbyte.connector.config.connection_data.connection_type", value = "service_name")
+    @Property(
+        name = "airbyte.connector.config.connection_data.connection_type",
+        value = "service_name"
+    )
     @Property(name = "airbyte.connector.config.connection_data.service_name", value = "FREEPDB1")
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "NO_TUNNEL")
     internal fun testConfig() {
@@ -30,7 +36,8 @@ class OracleSourceCheckTest {
 
     @Test
     internal fun testConfigCli() {
-        val sslCert = """
+        val sslCert =
+            """
             -----BEGIN CERTIFICATE-----
             MIIDizCCAnOgAwIBAgIUVWCfGs+uSa8Kcuzj3d/IkYbYMCwwDQYJKoZIhvcNAQEL
             BQAwVTELMAkGA1UEBhMCQ0ExCzAJBgNVBAgMAlFDMRYwFAYDVQQHDA1EcnVtbW9u
@@ -52,8 +59,15 @@ class OracleSourceCheckTest {
             DCDug44eK1q3ciBAojpbVjJO/sRLyXl5EGsJv2fAOFCC9NrcBhWqFulktQVZu7Wd
             kRj5zGaGRdL+l0Io1vHgJY7jNf3qp9F0uo4MIumj4CXRxq115zCbeznr0wr5/j0=
             -----END CERTIFICATE-----
-        """.trimIndent().trim().replace("\n", "\\n")
-        val configFile = File(IOs.writeFileToRandomTmpDir("config.json", """
+        """
+                .trimIndent()
+                .trim()
+                .replace("\n", "\\n")
+        val configFile =
+            File(
+                IOs.writeFileToRandomTmpDir(
+                    "config.json",
+                    """
             {
                 "host": "localhost",
                 "port": 12345,
@@ -63,14 +77,22 @@ class OracleSourceCheckTest {
                 "connection_data": {"connection_type": "service_name", "service_name": "myname"},
                 "tunnel_method": {"tunnel_method": "FOO"}
             }
-        """.trimIndent()))
+        """.trimIndent()
+                )
+            )
         configFile.deleteOnExit()
-        OracleSource.main(arrayOf("--check", "--config", configFile.toPath().toAbsolutePath().toString()))
+        OracleSource.main(
+            arrayOf("--check", "--config", configFile.toPath().toAbsolutePath().toString())
+        )
     }
 
     @Test
     internal fun testCatalogCli() {
-        val configFile = File(IOs.writeFileToRandomTmpDir("config.json", """
+        val configFile =
+            File(
+                IOs.writeFileToRandomTmpDir(
+                    "config.json",
+                    """
             {
                 "host": "localhost",
                 "port": 12345,
@@ -78,16 +100,26 @@ class OracleSourceCheckTest {
                 "schemas": ["foo", "bar"],
                 "connection_data": {"connection_type": "service_name", "service_name": "myname"}
             }
-        """.trimIndent()))
+        """.trimIndent()
+                )
+            )
         configFile.deleteOnExit()
 
         val streamName = "test-name"
         val streamNamespace = "test-namespace"
-        val catalogJson = "{\"streams\":[{\"stream\":{\"name\":\"$streamName\",\"namespace\":\"$streamNamespace\"}}]}"
+        val catalogJson =
+            "{\"streams\":[{\"stream\":{\"name\":\"$streamName\",\"namespace\":\"$streamNamespace\"}}]}"
         val catalogFile = File(IOs.writeFileToRandomTmpDir("catalog.json", catalogJson))
         catalogFile.deleteOnExit()
 
-        OracleSource.main(arrayOf("--read", "--config", configFile.toString() ,"--catalog", catalogFile.toString()))
+        OracleSource.main(
+            arrayOf(
+                "--read",
+                "--config",
+                configFile.toString(),
+                "--catalog",
+                catalogFile.toString()
+            )
+        )
     }
 }
-

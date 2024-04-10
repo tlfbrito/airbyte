@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+ */
+
 package io.airbyte.integrations.source.oracle
 
 import io.airbyte.cdk.operation.CONNECTOR_OPERATION
@@ -11,20 +15,20 @@ import org.junit.jupiter.api.Test
 @Property(name = CONNECTOR_OPERATION, value = "discover")
 class OracleSourceDiscoverTest {
 
-    @Inject
-    lateinit var discoverOperation: DefaultDiscoverOperation
+    @Inject lateinit var discoverOperation: DefaultDiscoverOperation
 
     @Test
     @Property(name = "airbyte.connector.config.host", value = "localhost")
     @Property(name = "airbyte.connector.config.port", value = "1521")
     @Property(name = "airbyte.connector.config.username", value = "FOO")
     @Property(name = "airbyte.connector.config.password", value = "BAR")
-    @Property(name = "airbyte.connector.config.connection_data.connection_type", value = "service_name")
+    @Property(
+        name = "airbyte.connector.config.connection_data.connection_type",
+        value = "service_name"
+    )
     @Property(name = "airbyte.connector.config.connection_data.service_name", value = "FREEPDB1")
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "NO_TUNNEL")
     internal fun testDiscover() {
         discoverOperation.execute()
     }
-
 }
-

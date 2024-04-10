@@ -1,10 +1,11 @@
+/*
+ * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+ */
+
 package io.airbyte.cdk.command
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.JsonNode
 import io.airbyte.cdk.operation.Operation
 import io.airbyte.commons.exceptions.ConfigErrorException
-import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.AirbyteStateMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.ConfigurationProperties
@@ -26,24 +27,26 @@ class ConnectorInputStateSupplierImpl : ConnectorInputStateSupplier {
     var json: String = "[]"
 
     private val validated: List<AirbyteStateMessage> by lazy {
-        val list: List<AirbyteStateMessage> = try {
-            JsonParser.parse<List<AirbyteStateMessage>>(json)
-        } catch (e: Exception) {
+        val list: List<AirbyteStateMessage> =
             try {
-                listOf(JsonParser.parse<AirbyteStateMessage>(json))
-            } catch (_: Exception) {
-                throw e
+                JsonParser.parse<List<AirbyteStateMessage>>(json)
+            } catch (e: Exception) {
+                try {
+                    listOf(JsonParser.parse<AirbyteStateMessage>(json))
+                } catch (_: Exception) {
+                    throw e
+                }
             }
-        }
         if (list.isEmpty()) {
             return@lazy listOf<AirbyteStateMessage>()
         }
         val type: AirbyteStateMessage.AirbyteStateType = list.first().type
-        val isGlobal: Boolean = when (type) {
-            AirbyteStateMessage.AirbyteStateType.GLOBAL -> true
-            AirbyteStateMessage.AirbyteStateType.STREAM -> false
-            else -> throw ConfigErrorException("unsupported state type $type")
-        }
+        val isGlobal: Boolean =
+            when (type) {
+                AirbyteStateMessage.AirbyteStateType.GLOBAL -> true
+                AirbyteStateMessage.AirbyteStateType.STREAM -> false
+                else -> throw ConfigErrorException("unsupported state type $type")
+            }
         val filtered: List<AirbyteStateMessage> = list.filter { it.type == type }
         if (filtered.size < list.size) {
             val n = list.size - filtered.size
@@ -55,10 +58,12 @@ class ConnectorInputStateSupplierImpl : ConnectorInputStateSupplier {
             }
             return@lazy listOf(filtered.last())
         }
-        val lastOfEachStream: List<AirbyteStateMessage> = filtered
-            .groupingBy { it.stream.streamDescriptor }
-            .reduce { _, _, msg -> msg }
-            .values.toList()
+        val lastOfEachStream: List<AirbyteStateMessage> =
+            filtered
+                .groupingBy { it.stream.streamDescriptor }
+                .reduce { _, _, msg -> msg }
+                .values
+                .toList()
         if (lastOfEachStream.size < filtered.size) {
             logger.warn { "discarded all but last stream state message for each stream descriptor" }
         }
@@ -66,15 +71,14 @@ class ConnectorInputStateSupplierImpl : ConnectorInputStateSupplier {
     }
 
     override fun get(): List<AirbyteStateMessage> = validated
-
 }
 
 @Singleton
 @Requires(property = CONNECTOR_STATE_PREFIX)
 class ConnectorInputStateValidator(
-        private val operation: Operation,
-        private val configSupplier: ConnectorConfigurationSupplier<out ConnectorConfiguration>,
-        private val stateSupplier: ConnectorInputStateSupplier,
+    private val operation: Operation,
+    private val configSupplier: ConnectorConfigurationSupplier<out ConnectorConfiguration>,
+    private val stateSupplier: ConnectorInputStateSupplier,
 ) : ApplicationEventListener<StartupEvent> {
 
     override fun onApplicationEvent(event: StartupEvent) {
@@ -89,7 +93,8 @@ class ConnectorInputStateValidator(
             logger.warn { "${operation.type.name} does not accept state" }
             return
         }
-        val expectedStateType: AirbyteStateMessage.AirbyteStateType = sourceConfig().expectedStateType
+        val expectedStateType: AirbyteStateMessage.AirbyteStateType =
+            sourceConfig().expectedStateType
         if (expectedStateType != stateType) {
             throw IllegalArgumentException(
                 "$stateType input state incompatible with config, which requires $expectedStateType"

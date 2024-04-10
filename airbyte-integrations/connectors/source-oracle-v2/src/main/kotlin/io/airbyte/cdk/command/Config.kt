@@ -29,7 +29,6 @@ interface ConnectorConfiguration {
     val sshTunnel: SshTunnelMethod
 
     fun getDefaultNamespace(): Optional<String>
-
 }
 
 interface ConnectorConfigurationSupplier<T : ConnectorConfiguration> : Supplier<T>
@@ -44,17 +43,15 @@ interface SourceConnectorConfiguration : ConnectorConfiguration {
     val schemas: List<String>
 
     fun createConnection(): Connection =
-        DriverManager.getConnection(jdbcUrl, Properties().apply { putAll(jdbcProperties) })
-            .also { it.isReadOnly = true }
+        DriverManager.getConnection(jdbcUrl, Properties().apply { putAll(jdbcProperties) }).also {
+            it.isReadOnly = true
+        }
 }
 
 interface DestinationConnectorConfiguration : ConnectorConfiguration {
 
     fun getRawNamespace(): Optional<String>
-
 }
-
-
 
 @Singleton
 @Requires(property = CONNECTOR_CONFIG_PREFIX)
@@ -69,7 +66,7 @@ class ConnectorConfigurationValidator(
         } catch (e: ConfigErrorException) {
             throw e
         } catch (e: Exception) {
-            throw ConfigErrorException("invalid connector configuration" , e)
+            throw ConfigErrorException("invalid connector configuration", e)
         }
         logger.info { "valid connector configuration present for ${operation.type.name}" }
         if (!operation.type.requiresConfiguration) {

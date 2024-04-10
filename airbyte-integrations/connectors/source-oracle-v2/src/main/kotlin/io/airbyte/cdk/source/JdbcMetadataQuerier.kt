@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+ */
+
 package io.airbyte.cdk.source
 
 import io.airbyte.cdk.command.ConnectorConfigurationSupplier
@@ -18,31 +22,26 @@ class JdbcMetadataQuerier(
     private val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>
 ) : MetadataQuerier {
 
-    private val config: SourceConnectorConfiguration by lazy {
-        configSupplier.get()
-    }
+    private val config: SourceConnectorConfiguration by lazy { configSupplier.get() }
 
-    private val conn: Connection by lazy {
-        config.createConnection()
-    }
+    private val conn: Connection by lazy { config.createConnection() }
 
     override fun tableNames(): List<TableName> {
         val results = mutableListOf<TableName>()
         for (schema in config.schemas) {
             val rs: ResultSet = conn.metaData.getTables(null, schema, null, null)
             while (rs.next()) {
-                val tableName = TableName(
-                    catalog = rs.getString("TABLE_CAT"),
-                    schema = rs.getString("TABLE_SCHEM"),
-                    name = rs.getString("TABLE_NAME"),
-                    type = rs.getString("TABLE_TYPE") ?: "",
-                )
+                val tableName =
+                    TableName(
+                        catalog = rs.getString("TABLE_CAT"),
+                        schema = rs.getString("TABLE_SCHEM"),
+                        name = rs.getString("TABLE_NAME"),
+                        type = rs.getString("TABLE_TYPE") ?: "",
+                    )
                 results.add(tableName)
             }
         }
-        return results.sortedBy {
-            "${it.catalog ?: ""}.${it.schema ?: ""}.${it.name}.${it.type}"
-        }
+        return results.sortedBy { "${it.catalog ?: ""}.${it.schema ?: ""}.${it.name}.${it.type}" }
     }
 
     override fun columnMetadata(table: TableName, sql: String): List<ColumnMetadata> {
@@ -61,11 +60,12 @@ class JdbcMetadataQuerier(
                     isCaseSensitive = swallow { meta.isCaseSensitive(it) },
                     isSearchable = swallow { meta.isSearchable(it) },
                     isCurrency = swallow { meta.isCurrency(it) },
-                    isNullable = when (swallow { meta.isNullable(it) }) {
-                        ResultSetMetaData.columnNoNulls -> false
-                        ResultSetMetaData.columnNullable -> true
-                        else -> null
-                    },
+                    isNullable =
+                        when (swallow { meta.isNullable(it) }) {
+                            ResultSetMetaData.columnNoNulls -> false
+                            ResultSetMetaData.columnNullable -> true
+                            else -> null
+                        },
                     isSigned = swallow { meta.isSigned(it) },
                     displaySize = swallow { meta.getColumnDisplaySize(it) },
                     precision = swallow { meta.getPrecision(it) },
@@ -95,10 +95,9 @@ class JdbcMetadataQuerier(
             pkMap[pkOrdinal] = pkCol
             pksMap[pkName] = pkMap
         }
-        return pksMap
-            .toSortedMap(Comparator.naturalOrder<String>())
-            .values
-            .map { it.toSortedMap().values.toList() }
+        return pksMap.toSortedMap(Comparator.naturalOrder<String>()).values.map {
+            it.toSortedMap().values.toList()
+        }
     }
 
     override fun close() {

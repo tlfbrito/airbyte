@@ -4,7 +4,6 @@
 
 package io.airbyte.cdk
 
-import io.micronaut.core.cli.CommandLine as MicronautCommandLine
 import io.airbyte.cdk.command.ConnectorCommandLinePropertySource
 import io.airbyte.cdk.integrations.base.AirbyteTraceMessageUtility
 import io.airbyte.cdk.integrations.util.ApmTraceUtils
@@ -15,6 +14,7 @@ import io.micronaut.context.ApplicationContext
 import io.micronaut.context.ApplicationContextBuilder
 import io.micronaut.context.env.CommandLinePropertySource
 import io.micronaut.context.env.Environment
+import io.micronaut.core.cli.CommandLine as MicronautCommandLine
 import picocli.CommandLine
 
 /**
@@ -39,7 +39,8 @@ class AirbyteConnectorRunner {
 
         private val logger = KotlinLogging.logger {}
 
-        @JvmStatic fun <R : Runnable> run(
+        @JvmStatic
+        fun <R : Runnable> run(
             connectorType: ConnectorType,
             cls: Class<R>,
             vararg args: String,
@@ -47,9 +48,9 @@ class AirbyteConnectorRunner {
             val commandLine: MicronautCommandLine = MicronautCommandLine.parse(*args)
             val configPropertySource = ConnectorCommandLinePropertySource(commandLine)
             val commandLinePropertySource = CommandLinePropertySource(commandLine)
-            val ctxBuilder: ApplicationContextBuilder = ApplicationContext
-                .builder(cls, Environment.CLI, connectorType.name.lowercase())
-                .propertySources(configPropertySource, commandLinePropertySource)
+            val ctxBuilder: ApplicationContextBuilder =
+                ApplicationContext.builder(cls, Environment.CLI, connectorType.name.lowercase())
+                    .propertySources(configPropertySource, commandLinePropertySource)
             try {
                 val ctx: ApplicationContext = ctxBuilder.start()
                 run(cls, ctx, *args)
@@ -69,7 +70,8 @@ class AirbyteConnectorRunner {
             }
         }
 
-        @JvmStatic fun <R : Runnable> run(
+        @JvmStatic
+        fun <R : Runnable> run(
             cls: Class<R>,
             ctx: ApplicationContext,
             vararg args: String,

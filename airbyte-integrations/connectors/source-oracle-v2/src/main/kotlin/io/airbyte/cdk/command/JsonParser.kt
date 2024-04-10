@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
+ */
+
 package io.airbyte.cdk.command
 
 import com.fasterxml.jackson.databind.JsonNode
@@ -24,7 +28,9 @@ data object JsonParser {
         }
         val validationFailures = JsonSchemaValidator().validate(jsonSchema, tree)
         if (validationFailures.isNotEmpty()) {
-            throw ConfigErrorException("${T::class} json schema violation: ${validationFailures.first()}")
+            throw ConfigErrorException(
+                "${T::class} json schema violation: ${validationFailures.first()}"
+            )
         }
         val result: T
         try {
@@ -35,10 +41,10 @@ data object JsonParser {
         return result
     }
 
-    val config: JsonSchemaConfig = JsonSchemaConfig.vanillaJsonSchemaDraft4()
-        .withJsonSchemaDraft(JsonSchemaDraft.DRAFT_07)
-        .withFailOnUnknownProperties(false)
+    val config: JsonSchemaConfig =
+        JsonSchemaConfig.vanillaJsonSchemaDraft4()
+            .withJsonSchemaDraft(JsonSchemaDraft.DRAFT_07)
+            .withFailOnUnknownProperties(false)
 
     val generator = JsonSchemaGenerator(MoreMappers.initMapper(), config)
-
 }

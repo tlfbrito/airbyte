@@ -4,31 +4,21 @@
 
 package io.airbyte.cdk.operation
 
-import io.airbyte.cdk.command.ConnectorConfigurationSupplier
-import io.airbyte.cdk.command.SourceConnectorConfiguration
 import io.airbyte.cdk.source.ColumnMetadata
 import io.airbyte.cdk.source.MetadataQuerier
 import io.airbyte.cdk.source.SourceOperations
 import io.airbyte.cdk.source.TableName
 import io.airbyte.protocol.models.Field
-import io.airbyte.protocol.models.JsonSchemaType
 import io.airbyte.protocol.models.v0.AirbyteCatalog
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.airbyte.protocol.models.v0.AirbyteStream
 import io.airbyte.protocol.models.v0.AirbyteStreamNameNamespacePair
 import io.airbyte.protocol.models.v0.CatalogHelpers
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.micronaut.context.annotation.Prototype
 import io.micronaut.context.annotation.Requires
-import io.micronaut.context.env.Environment
 import jakarta.inject.Named
 import jakarta.inject.Singleton
-import java.sql.Connection
-import java.sql.JDBCType
-import java.sql.ResultSet
-import java.sql.ResultSetMetaData
 import java.sql.SQLException
-import java.sql.Statement
 import java.util.function.Consumer
 
 private val logger = KotlinLogging.logger {}
@@ -46,19 +36,20 @@ class DefaultDiscoverOperation(
     override val type = OperationType.DISCOVER
 
     override fun execute() {
-        val airbyteStreams: List<AirbyteStream> = tableNames()
-            .mapNotNull(::discoveredStream)
-            .map {
+        val airbyteStreams: List<AirbyteStream> =
+            tableNames().mapNotNull(::discoveredStream).map {
                 CatalogHelpers.createAirbyteStream(
-                    it.fullyQualifiedName.name,
-                    it.fullyQualifiedName.namespace,
-                    it.fields
-                ).withSourceDefinedPrimaryKey(it.primaryKeys)
+                        it.fullyQualifiedName.name,
+                        it.fullyQualifiedName.namespace,
+                        it.fields
+                    )
+                    .withSourceDefinedPrimaryKey(it.primaryKeys)
             }
         outputRecordCollector.accept(
             AirbyteMessage()
                 .withType(AirbyteMessage.Type.CATALOG)
-                .withCatalog(AirbyteCatalog().withStreams(airbyteStreams)))
+                .withCatalog(AirbyteCatalog().withStreams(airbyteStreams))
+        )
     }
 
     override fun close() {
@@ -71,8 +62,9 @@ class DefaultDiscoverOperation(
         try {
             tableNames = metadataQuerier.tableNames()
         } catch (e: SQLException) {
-            logger.info { "Failed to query table names; " +
-                "code = ${e.errorCode}; SQLState = ${e.sqlState}" }
+            logger.info {
+                "Failed to query table names; " + "code = ${e.errorCode}; SQLState = ${e.sqlState}"
+            }
             logger.debug(e) { "Table name discovery query failed with exception." }
             return listOf()
         }
@@ -86,7 +78,7 @@ class DefaultDiscoverOperation(
         val columnMetadata: List<ColumnMetadata>
         try {
             columnMetadata = metadataQuerier.columnMetadata(table, sql)
-        }  catch (e: SQLException) {
+        } catch (e: SQLException) {
             logger.info {
                 "Query failed with code ${e.errorCode}, SQLState ${e.sqlState};" +
                     " not adding table to discovered catalog."
@@ -118,14 +110,14 @@ class DefaultDiscoverOperation(
         try {
             pks = metadataQuerier.primaryKeys(table)
         } catch (e: SQLException) {
-            logger.info { "Failed to query primary keys for $table: " +
-                "code = ${e.errorCode}; SQLState = ${e.sqlState})" }
+            logger.info {
+                "Failed to query primary keys for $table: " +
+                    "code = ${e.errorCode}; SQLState = ${e.sqlState})"
+            }
             logger.debug(e) { "Primary key discovery query failed with exception." }
             return listOf()
         }
         logger.info { "Found ${pks.size} primary key(s) in $table." }
         return pks
     }
-
 }
-

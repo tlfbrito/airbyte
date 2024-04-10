@@ -18,7 +18,6 @@ import jakarta.inject.Singleton
 import java.net.URI
 import java.util.function.Consumer
 
-
 private val logger = KotlinLogging.logger {}
 
 @Singleton
@@ -57,17 +56,16 @@ class DefaultSpecOperation(
             )
         }
         outputRecordCollector.accept(
-            AirbyteMessage()
-                .withType(AirbyteMessage.Type.SPEC)
-                .withSpec(spec),
+            AirbyteMessage().withType(AirbyteMessage.Type.SPEC).withSpec(spec),
         )
     }
 
     companion object {
 
-        val config: JsonSchemaConfig = JsonSchemaConfig.vanillaJsonSchemaDraft4()
-            .withJsonSchemaDraft(JsonSchemaDraft.DRAFT_07)
-            .withFailOnUnknownProperties(false)
+        val config: JsonSchemaConfig =
+            JsonSchemaConfig.vanillaJsonSchemaDraft4()
+                .withJsonSchemaDraft(JsonSchemaDraft.DRAFT_07)
+                .withFailOnUnknownProperties(false)
 
         val generator = JsonSchemaGenerator(MoreMappers.initMapper(), config)
     }

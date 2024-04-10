@@ -30,7 +30,6 @@ class ConfiguredAirbyteCatalogSupplierImpl : ConfiguredAirbyteCatalogSupplier {
     }
 
     override fun get(): ConfiguredAirbyteCatalog = validated
-
 }
 
 @Singleton
@@ -44,7 +43,8 @@ class ConfiguredAirbyteCatalogValidator(
         val hasCatalog: Boolean = ConfiguredAirbyteCatalog() != catalogSupplier.get()
         if (operation.type.requiresCatalog && !hasCatalog) {
             throw IllegalArgumentException(
-                "${operation.type.name} requires a valid configured catalog, none available")
+                "${operation.type.name} requires a valid configured catalog, none available"
+            )
         }
         if (hasCatalog) {
             logger.info { "valid configured catalog present for ${operation.type.name}" }

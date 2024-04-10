@@ -5,8 +5,8 @@
 package io.airbyte.cdk
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
-import io.airbyte.cdk.operation.Operation
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
+import io.airbyte.cdk.operation.Operation
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Value
 import jakarta.inject.Inject
@@ -115,5 +115,4 @@ class IntegrationCommand : Runnable {
 
     @Value("\${micronaut.application.name}") lateinit var connectorName: String
     @Inject lateinit var operation: Operation
-
 }
