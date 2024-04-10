@@ -7,6 +7,7 @@ import io.airbyte.cdk.db.jdbc.JdbcDatabase;
 import io.airbyte.cdk.integrations.destination.jdbc.typing_deduping.JdbcDestinationHandler;
 import io.airbyte.commons.exceptions.SQLRuntimeException;
 import io.airbyte.integrations.base.destination.typing_deduping.StreamId;
+import io.airbyte.integrations.base.destination.typing_deduping.migrators.MinimumDestinationState;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -21,11 +22,11 @@ import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MysqlDestinationHandler extends JdbcDestinationHandler {
+public class MysqlDestinationHandler extends JdbcDestinationHandler<MinimumDestinationState> {
   private static final Logger LOGGER = LoggerFactory.getLogger(MysqlDestinationHandler.class);
 
-  public MysqlDestinationHandler(final String databaseName, final JdbcDatabase jdbcDatabase) {
-    super(databaseName, jdbcDatabase, SQLDialect.MYSQL);
+  public MysqlDestinationHandler(final String databaseName, final JdbcDatabase jdbcDatabase, String rawTableSchema) {
+    super(databaseName, jdbcDatabase, rawTableSchema, SQLDialect.MYSQL);
   }
 
   // mysql's ResultSet#getTimestamp() throws errors like

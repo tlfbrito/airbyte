@@ -4,52 +4,51 @@
 
 package io.airbyte.integrations.destination.mysql.typing_deduping;
 
-import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_EXTRACTED_AT;
-import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_ID;
-import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_LOADED_AT;
-import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_RAW_ID;
-import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_DATA;
-import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_EMITTED_AT;
-import static io.airbyte.integrations.destination.mysql.typing_deduping.MysqlSqlGenerator.TIMESTAMP_FORMATTER;
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+ import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_EXTRACTED_AT;
+ import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_ID;
+ import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_LOADED_AT;
+ import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_RAW_ID;
+ import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_DATA;
+ import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_EMITTED_AT;
+ import static io.airbyte.integrations.destination.mysql.typing_deduping.MysqlSqlGenerator.TIMESTAMP_FORMATTER;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertFalse;
+ import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.airbyte.cdk.db.jdbc.DefaultJdbcDatabase;
-import io.airbyte.cdk.db.jdbc.JdbcDatabase;
-import io.airbyte.cdk.db.jdbc.JdbcSourceOperations;
-import io.airbyte.cdk.integrations.destination.jdbc.TableDefinition;
-import io.airbyte.cdk.integrations.destination.jdbc.typing_deduping.JdbcDestinationHandler;
-import io.airbyte.cdk.integrations.destination.jdbc.typing_deduping.JdbcSqlGenerator;
-import io.airbyte.cdk.integrations.standardtest.destination.typing_deduping.JdbcSqlGeneratorIntegrationTest;
-import io.airbyte.commons.json.Jsons;
-import io.airbyte.integrations.base.destination.typing_deduping.DestinationHandler;
-import io.airbyte.integrations.base.destination.typing_deduping.Sql;
-import io.airbyte.integrations.base.destination.typing_deduping.StreamId;
-import io.airbyte.integrations.destination.mysql.MySQLDestination;
-import io.airbyte.integrations.destination.mysql.MySQLDestinationAcceptanceTest;
-import io.airbyte.integrations.destination.mysql.MySQLNameTransformer;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
-import javax.sql.DataSource;
-import org.jooq.DataType;
-import org.jooq.Field;
-import org.jooq.SQLDialect;
-import org.jooq.conf.ParamType;
-import org.jooq.impl.DSL;
-import org.jooq.impl.DefaultDataType;
-import org.jooq.impl.SQLDataType;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.MySQLContainer;
+ import com.fasterxml.jackson.databind.JsonNode;
+ import com.fasterxml.jackson.databind.node.ObjectNode;
+ import io.airbyte.cdk.db.jdbc.DefaultJdbcDatabase;
+ import io.airbyte.cdk.db.jdbc.JdbcDatabase;
+ import io.airbyte.cdk.db.jdbc.JdbcSourceOperations;
+ import io.airbyte.cdk.integrations.destination.jdbc.typing_deduping.JdbcSqlGenerator;
+ import io.airbyte.cdk.integrations.standardtest.destination.typing_deduping.JdbcSqlGeneratorIntegrationTest;
+ import io.airbyte.commons.json.Jsons;
+ import io.airbyte.integrations.base.destination.typing_deduping.DestinationHandler;
+ import io.airbyte.integrations.base.destination.typing_deduping.DestinationInitialStatus;
+ import io.airbyte.integrations.base.destination.typing_deduping.Sql;
+ import io.airbyte.integrations.base.destination.typing_deduping.StreamId;
+ import io.airbyte.integrations.base.destination.typing_deduping.migrators.MinimumDestinationState;
+ import io.airbyte.integrations.destination.mysql.MySQLDestination;
+ import io.airbyte.integrations.destination.mysql.MySQLDestinationAcceptanceTest;
+ import io.airbyte.integrations.destination.mysql.MySQLNameTransformer;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ import java.time.OffsetDateTime;
+ import java.util.List;
+ import javax.sql.DataSource;
+ import org.jooq.DataType;
+ import org.jooq.Field;
+ import org.jooq.SQLDialect;
+ import org.jooq.conf.ParamType;
+ import org.jooq.impl.DSL;
+ import org.jooq.impl.DefaultDataType;
+ import org.jooq.impl.SQLDataType;
+ import org.junit.jupiter.api.AfterAll;
+ import org.junit.jupiter.api.BeforeAll;
+ import org.junit.jupiter.api.Test;
+ import org.testcontainers.containers.MySQLContainer;
 
-public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegrationTest {
+public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegrationTest<MinimumDestinationState> {
 
   private static MySQLContainer<?> testContainer;
   private static JdbcDatabase database;
@@ -100,16 +99,16 @@ public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegratio
   }
 
   @Override
-  protected DestinationHandler<TableDefinition> getDestinationHandler() {
+  protected DestinationHandler<MinimumDestinationState> getDestinationHandler() {
     // Mysql doesn't have an actual schema concept.
     // All of our queries pass a value into the "schemaName" parameter, which mysql treats as being
     // the database name.
     // So we pass null for the databaseName parameter here, because we don't use the 'test' database at all.
-    return new JdbcDestinationHandler(null, database, SQLDialect.MYSQL);
+    return new MysqlDestinationHandler(null, database, getNamespace());
   }
 
   @Override
-  protected void insertRawTableRecords(final StreamId streamId, final List<JsonNode> records) throws Exception {
+  public void insertRawTableRecords(final StreamId streamId, final List<? extends JsonNode> records) throws Exception {
     reformatMetaColumnTimestamps(records);
     super.insertRawTableRecords(streamId, records);
   }
@@ -118,19 +117,19 @@ public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegratio
   protected void insertFinalTableRecords(final boolean includeCdcDeletedAt,
                                          final StreamId streamId,
                                          final String suffix,
-                                         final List<JsonNode> records)
+                                         final List<? extends JsonNode> records)
       throws Exception {
     reformatMetaColumnTimestamps(records);
     super.insertFinalTableRecords(includeCdcDeletedAt, streamId, suffix, records);
   }
 
   @Override
-  protected void insertV1RawTableRecords(final StreamId streamId, final List<JsonNode> records) throws Exception {
+  protected void insertV1RawTableRecords(final StreamId streamId, final List<? extends JsonNode> records) throws Exception {
     reformatMetaColumnTimestamps(records);
     super.insertV1RawTableRecords(streamId, records);
   }
 
-  private static void reformatMetaColumnTimestamps(final List<JsonNode> records) {
+  private static void reformatMetaColumnTimestamps(final List<? extends JsonNode> records) {
     // We use mysql's TIMESTAMP(6) type for extracted_at+loaded_at.
     // Unfortunately, mysql doesn't allow you to use the 'Z' suffix for UTC timestamps.
     // Convert those to '+00:00' here.
@@ -151,7 +150,7 @@ public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegratio
 
   @Override
   protected void createRawTable(final StreamId streamId) throws Exception {
-    getDatabase().execute(getDslContext().createTable(DSL.name(streamId.rawNamespace(), streamId.rawName()))
+    getDatabase().execute(getDslContext().createTable(DSL.name(streamId.getRawNamespace(), streamId.getRawName()))
         .column(COLUMN_NAME_AB_RAW_ID, SQLDataType.VARCHAR(36).nullable(false))
         // we use VARCHAR for timestamp values, but TIMESTAMP(6) for extracted+loaded_at.
         // because legacy normalization did that. :shrug:
@@ -163,7 +162,7 @@ public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegratio
 
   @Override
   protected void createV1RawTable(final StreamId v1RawTable) throws Exception {
-    getDatabase().execute(getDslContext().createTable(DSL.name(v1RawTable.rawNamespace(), v1RawTable.rawName()))
+    getDatabase().execute(getDslContext().createTable(DSL.name(v1RawTable.getRawNamespace(), v1RawTable.getRawName()))
         .column(COLUMN_NAME_AB_ID, SQLDataType.VARCHAR(36).nullable(false))
         // similar to createRawTable - this data type is timestmap, not varchar
         .column(COLUMN_NAME_EMITTED_AT, SQLDataType.TIMESTAMP(6).nullable(false))
@@ -175,33 +174,14 @@ public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegratio
   @Override
   public void testCreateTableIncremental() throws Exception {
     // TODO
-    final Sql sql = generator.createTable(incrementalDedupStream, "", false);
-    destinationHandler.execute(sql);
+    final Sql sql = getGenerator().createTable(getIncrementalDedupStream(), "", false);
+    getDestinationHandler().execute(sql);
 
-    final Optional<TableDefinition> existingTable = destinationHandler.findExistingTable(incrementalDedupStream.id());
-
-    assertTrue(existingTable.isPresent());
-    assertAll(
-        () -> assertEquals("VARCHAR", existingTable.get().columns().get("_airbyte_raw_id").type()),
-        () -> assertEquals("TIMESTAMP", existingTable.get().columns().get("_airbyte_extracted_at").type()),
-        () -> assertEquals("JSON", existingTable.get().columns().get("_airbyte_meta").type()),
-        () -> assertEquals("BIGINT", existingTable.get().columns().get("id1").type()),
-        () -> assertEquals("BIGINT", existingTable.get().columns().get("id2").type()),
-        () -> assertEquals("VARCHAR", existingTable.get().columns().get("updated_at").type()),
-        () -> assertEquals("JSON", existingTable.get().columns().get("struct").type()),
-        () -> assertEquals("JSON", existingTable.get().columns().get("array").type()),
-        // Note that we use text here, since mysql varchar is limited to 64K
-        () -> assertEquals("TEXT", existingTable.get().columns().get("string").type()),
-        () -> assertEquals("DECIMAL", existingTable.get().columns().get("number").type()),
-        () -> assertEquals("BIGINT", existingTable.get().columns().get("integer").type()),
-        () -> assertEquals("BIT", existingTable.get().columns().get("boolean").type()),
-        () -> assertEquals("VARCHAR", existingTable.get().columns().get("timestamp_with_timezone").type()),
-        () -> assertEquals("DATETIME", existingTable.get().columns().get("timestamp_without_timezone").type()),
-        () -> assertEquals("VARCHAR", existingTable.get().columns().get("time_with_timezone").type()),
-        () -> assertEquals("TIME", existingTable.get().columns().get("time_without_timezone").type()),
-        () -> assertEquals("DATE", existingTable.get().columns().get("date").type()),
-        () -> assertEquals("JSON", existingTable.get().columns().get("unknown").type()));
-    // TODO assert on table clustering, etc.
+    List<DestinationInitialStatus<MinimumDestinationState>> initialStatuses = getDestinationHandler().gatherInitialState(List.of(getIncrementalDedupStream()));
+    assertEquals(1, initialStatuses.size());
+    final DestinationInitialStatus<MinimumDestinationState> initialStatus = initialStatuses.getFirst();
+    assertTrue(initialStatus.isFinalTablePresent());
+    assertFalse(initialStatus.isSchemaMismatch());
   }
 
   @Override
@@ -233,7 +213,7 @@ public class MysqlSqlGeneratorIntegrationTest extends JdbcSqlGeneratorIntegratio
   }
 
   @Override
-  public boolean supportsSafeCast() {
+  protected boolean getSupportsSafeCast() {
     return false;
   }
 
