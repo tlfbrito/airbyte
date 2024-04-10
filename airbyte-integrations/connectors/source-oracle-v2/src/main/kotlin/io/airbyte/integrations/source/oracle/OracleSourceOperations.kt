@@ -6,7 +6,6 @@ import io.micronaut.context.annotation.Primary
 import jakarta.inject.Singleton
 
 @Singleton
-@Primary
 class OracleSourceOperations : SourceOperations {
 
     override fun selectStarFromTableLimit0(table: TableName) =

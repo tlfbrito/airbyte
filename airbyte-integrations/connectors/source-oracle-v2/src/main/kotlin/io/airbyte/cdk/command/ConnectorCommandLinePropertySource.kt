@@ -56,14 +56,7 @@ private fun resolveValues(commandLine: CommandLine): Map<String, Any> {
             logger.warn { "File '$jsonFile' not found for '$cliOptionKey'." }
             continue
         }
-        val jsonString: String = jsonFile.readText()
-        val maybeJson: Optional<JsonNode> = Jsons.tryDeserialize(jsonString)
-        if (maybeJson.isEmpty) {
-            logger.warn { "Invalid JSON for '$cliOptionValue'." }
-            continue
-        }
-        val json: JsonNode = maybeJson.get()
-        values["$prefix.json"] = Jsons.serialize(json)
+        values["$prefix.json"] = jsonFile.readText()
     }
     return values
 }

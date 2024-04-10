@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyDescription
 import com.fasterxml.jackson.annotation.JsonPropertyOrder
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
-import com.fasterxml.jackson.databind.JsonNode
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaArrayWithUniqueItems
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaDefault
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaDescription
@@ -14,18 +13,18 @@ import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaInject
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaTitle
 import io.airbyte.cdk.command.CONNECTOR_CONFIG_PREFIX
 import io.airbyte.cdk.command.ConnectorConfigurationSupplier
+import io.airbyte.cdk.command.JsonParser
+import io.airbyte.cdk.command.MicronautFriendlySshTunnelMethod
 import io.airbyte.cdk.command.SourceConnectorConfiguration
-import io.airbyte.cdk.command.SshKeyAuthTunnelConfiguration
-import io.airbyte.cdk.command.SshNoTunnelConfiguration
-import io.airbyte.cdk.command.SshPasswordAuthTunnelConfiguration
-import io.airbyte.cdk.command.SshTunnelConfiguration
-import io.airbyte.cdk.command.SshTunnelConfigurationPOJO
+import io.airbyte.cdk.command.SshKeyAuthTunnelMethod
+import io.airbyte.cdk.command.SshNoTunnelMethod
+import io.airbyte.cdk.command.SshPasswordAuthTunnelMethod
+import io.airbyte.cdk.command.SshTunnelMethod
+import io.airbyte.cdk.command.SshTunnelMethodSubType
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.commons.io.IOs
 import io.airbyte.commons.json.Jsons
-import io.airbyte.commons.resources.MoreResources
 import io.airbyte.protocol.models.v0.AirbyteStateMessage
-import io.airbyte.validation.json.JsonSchemaValidator
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.ConfigurationBuilder
 import io.micronaut.context.annotation.ConfigurationProperties
@@ -46,7 +45,7 @@ private val logger = KotlinLogging.logger {}
 data class OracleSourceConfiguration (
     override val realHost: String,
     override val realPort: Int,
-    override val sshTunnel: SshTunnelConfiguration,
+    override val sshTunnel: SshTunnelMethod,
     override val jdbcUrl: String,
     override val jdbcProperties: Map<String, String>,
     val defaultSchema: String,
@@ -70,7 +69,10 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
     @get:JsonIgnore
     @delegate:JsonIgnore
     private val validated: OracleSourceConfiguration by lazy {
-        buildConfiguration(json ?: Jsons.serialize(this))
+        // When the config is set via micronaut annotations instead of via a JSON file
+        // passed on the command line, we need to round-trip the current object.
+        val jsonString: String = json ?: Jsons.serialize(this)
+        buildConfiguration(JsonParser.parse(jsonString))
     }
 
     @JsonIgnore
@@ -79,8 +81,6 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
     @JsonProperty("host", required = true)
     @JsonSchemaTitle("Host")
     @JsonSchemaInject(json = """{"order":1}""")
-
-
     @JsonPropertyDescription("Hostname of the database.")
     var host: String? = null
 
@@ -96,10 +96,7 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
         "connections to the listener using TCP/IP with SSL.")
     var port: Int? = null
 
-
     @JsonProperty("connection_data")
-    @JsonSchemaTitle("Connect by")
-    @JsonPropertyDescription("Connect data that will be used for DB connection.")
     @JsonSchemaInject(json = """{"order":3}""")
     @ConfigurationBuilder(configurationPrefix = "connection_data")
     val connectionData: ConnectionData = MicronautFriendlyConnectionData()
@@ -132,18 +129,15 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
     @JsonSchemaInject(json = """{"order":7}""")
     var jdbcUrlParams: String? = null
 
-
     @JsonProperty("encryption")
-    @JsonSchemaTitle("Encryption")
-    @JsonPropertyDescription(
-        "The encryption method which is used when communicating with the database.")
     @ConfigurationBuilder(configurationPrefix = "encryption")
     @JsonSchemaInject(json = """{"order":8}""")
     val encryption: Encryption = MicronautFriendlyEncryption()
 
     @JsonProperty("tunnel_method")
     @ConfigurationBuilder(configurationPrefix = "tunnel_method")
-    var tunnelMethod = SshTunnelConfigurationPOJO()
+    @JsonSchemaInject(json = """{"order":9}""")
+    var tunnelMethod: SshTunnelMethod = MicronautFriendlySshTunnelMethod()
 }
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "connection_type")
@@ -151,6 +145,8 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
     JsonSubTypes.Type(value = ServiceName::class, name = "service_name"),
     JsonSubTypes.Type(value = Sid::class, name = "sid")
 )
+@JsonSchemaTitle("Connect by")
+@JsonSchemaDescription("Connect data that will be used for DB connection.")
 private sealed interface ConnectionData
 private sealed interface ConnectionDataSubType : ConnectionData
 
@@ -192,6 +188,9 @@ private class MicronautFriendlyConnectionData : ConnectionData {
     JsonSubTypes.Type(value = EncryptionAlgorithm::class, name = "client_nne"),
     JsonSubTypes.Type(value = SslCertificate::class, name = "encrypted_verify_certificate")
 )
+@JsonSchemaTitle("Encryption")
+@JsonSchemaDescription(
+    "The encryption method which is used when communicating with the database.")
 private sealed interface Encryption
 
 private sealed interface EncryptionSubType : Encryption
@@ -243,21 +242,19 @@ private class MicronautFriendlyEncryption : Encryption {
     }
 }
 
-private fun buildConfiguration(jsonString: String): OracleSourceConfiguration {
-    val json: JsonNode = Jsons.deserialize(jsonString)
-    val schema = Jsons.deserialize(MoreResources.readBytes("spec.json"))
-    val results = JsonSchemaValidator().validate(schema, json)
-    if (results.isNotEmpty()) {
-        throw ConfigErrorException("config json schema violation: ${results.first()}")
-    }
-    val pojo = Jsons.`object`(json, ConfigurationPOJO::class.java)
+private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfiguration {
     val realHost: String = pojo.host!!
     val realPort: Int = pojo.port!!
-    val sshTunnel: SshTunnelConfiguration = pojo.tunnelMethod.get()
+    val sshTunnel: SshTunnelMethodSubType = pojo.tunnelMethod.let {
+        when (it) {
+            is SshTunnelMethodSubType -> it
+            is MicronautFriendlySshTunnelMethod -> it.asSshTunnelMethodSubType()
+        }
+    }
     val (host, port) = when (sshTunnel) {
-        is SshKeyAuthTunnelConfiguration -> sshTunnel.host to sshTunnel.port
-        is SshPasswordAuthTunnelConfiguration -> sshTunnel.host to sshTunnel.port
-        is SshNoTunnelConfiguration -> realHost to realPort
+        is SshKeyAuthTunnelMethod -> sshTunnel.host to sshTunnel.port
+        is SshPasswordAuthTunnelMethod -> sshTunnel.host to sshTunnel.port
+        is SshNoTunnelMethod -> realHost to realPort
     }
     val jdbcProperties = mutableMapOf<String, String>()
     jdbcProperties["user"] = pojo.username!!

@@ -3,6 +3,7 @@ package io.airbyte.cdk.command
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
 import io.airbyte.cdk.operation.Operation
+import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.AirbyteStateMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -20,17 +21,20 @@ const val CONNECTOR_STATE_PREFIX: String = "airbyte.connector.state"
 interface ConnectorInputStateSupplier : Supplier<List<AirbyteStateMessage>>
 
 @ConfigurationProperties(CONNECTOR_STATE_PREFIX)
-class AirbyteStateMessageListPOJO : ConnectorInputStateSupplier {
+class ConnectorInputStateSupplierImpl : ConnectorInputStateSupplier {
 
     var json: String = "[]"
 
     private val validated: List<AirbyteStateMessage> by lazy {
-        var jsonNode: JsonNode = Jsons.deserialize(json)
-        if (!jsonNode.isArray) {
-            jsonNode = Jsons.arrayNode().apply { add(jsonNode) }
+        val list: List<AirbyteStateMessage> = try {
+            JsonParser.parse<List<AirbyteStateMessage>>(json)
+        } catch (e: Exception) {
+            try {
+                listOf(JsonParser.parse<AirbyteStateMessage>(json))
+            } catch (_: Exception) {
+                throw e
+            }
         }
-        val typeReference = object : TypeReference<List<AirbyteStateMessage>>() {}
-        val list: List<AirbyteStateMessage> = Jsons.`object`(jsonNode, typeReference)
         if (list.isEmpty()) {
             return@lazy listOf<AirbyteStateMessage>()
         }
@@ -38,7 +42,7 @@ class AirbyteStateMessageListPOJO : ConnectorInputStateSupplier {
         val isGlobal: Boolean = when (type) {
             AirbyteStateMessage.AirbyteStateType.GLOBAL -> true
             AirbyteStateMessage.AirbyteStateType.STREAM -> false
-            else -> throw RuntimeException("unsupported state type $type")
+            else -> throw ConfigErrorException("unsupported state type $type")
         }
         val filtered: List<AirbyteStateMessage> = list.filter { it.type == type }
         if (filtered.size < list.size) {

@@ -64,9 +64,11 @@ class DefaultSpecOperation(
     }
 
     companion object {
+
         val config: JsonSchemaConfig = JsonSchemaConfig.vanillaJsonSchemaDraft4()
             .withJsonSchemaDraft(JsonSchemaDraft.DRAFT_07)
             .withFailOnUnknownProperties(false)
+
         val generator = JsonSchemaGenerator(MoreMappers.initMapper(), config)
     }
 }

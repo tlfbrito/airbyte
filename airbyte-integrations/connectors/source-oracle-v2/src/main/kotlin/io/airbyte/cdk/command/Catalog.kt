@@ -5,7 +5,6 @@
 package io.airbyte.cdk.command
 
 import io.airbyte.cdk.operation.Operation
-import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.ConfiguredAirbyteCatalog
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.ConfigurationProperties
@@ -22,12 +21,12 @@ const val CONNECTOR_CATALOG_PREFIX: String = "airbyte.connector.catalog"
 interface ConfiguredAirbyteCatalogSupplier : Supplier<ConfiguredAirbyteCatalog>
 
 @ConfigurationProperties(CONNECTOR_CATALOG_PREFIX)
-class ConfiguredAirbyteCatalogPOJO : ConfiguredAirbyteCatalogSupplier {
+class ConfiguredAirbyteCatalogSupplierImpl : ConfiguredAirbyteCatalogSupplier {
 
     var json: String = "{}"
 
     private val validated: ConfiguredAirbyteCatalog by lazy {
-        Jsons.deserialize(json, ConfiguredAirbyteCatalog::class.java)
+        JsonParser.parse<ConfiguredAirbyteCatalog>(json)
     }
 
     override fun get(): ConfiguredAirbyteCatalog = validated
