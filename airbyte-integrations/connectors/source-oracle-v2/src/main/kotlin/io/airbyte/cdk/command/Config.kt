@@ -85,6 +85,9 @@ data class SshPasswordAuthTunnelConfiguration(
 
 interface SshTunnelConfigurationSupplier : Supplier<SshTunnelConfiguration>
 
+
+private sealed interface SshTunnelConfigurationSuperType
+
 @ConfigurationProperties("$CONNECTOR_CONFIG_PREFIX.tunnel_method")
 class SshTunnelConfigurationPOJO : SshTunnelConfigurationSupplier {
 
