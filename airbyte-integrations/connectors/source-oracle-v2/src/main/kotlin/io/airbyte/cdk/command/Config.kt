@@ -2,10 +2,10 @@
  * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
  */
 
-package io.airbyte.cdk.core.command
+package io.airbyte.cdk.command
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import io.airbyte.cdk.core.operation.Operation
+import io.airbyte.cdk.operation.Operation
 import io.airbyte.cdk.integrations.base.ssh.SshTunnel
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.protocol.models.v0.AirbyteStateMessage.AirbyteStateType

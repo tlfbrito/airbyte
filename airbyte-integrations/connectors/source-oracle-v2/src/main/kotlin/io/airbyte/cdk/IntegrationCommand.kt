@@ -2,10 +2,10 @@
  * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
  */
 
-package io.airbyte.cdk.core
+package io.airbyte.cdk
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
-import io.airbyte.cdk.core.operation.Operation
+import io.airbyte.cdk.operation.Operation
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Value

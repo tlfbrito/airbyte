@@ -2,9 +2,9 @@
  * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
  */
 
-package io.airbyte.cdk.core.command
+package io.airbyte.cdk.command
 
-import io.airbyte.cdk.core.operation.Operation
+import io.airbyte.cdk.operation.Operation
 import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.ConfiguredAirbyteCatalog
 import io.github.oshai.kotlinlogging.KotlinLogging

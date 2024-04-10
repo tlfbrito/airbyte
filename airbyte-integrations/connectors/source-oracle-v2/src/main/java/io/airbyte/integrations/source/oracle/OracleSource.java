@@ -1,7 +1,7 @@
 package io.airbyte.integrations.source.oracle;
 
-import io.airbyte.cdk.core.AirbyteConnectorRunner;
-import io.airbyte.cdk.core.IntegrationCommand;
+import io.airbyte.cdk.AirbyteConnectorRunner;
+import io.airbyte.cdk.IntegrationCommand;
 
 public class OracleSource {
 

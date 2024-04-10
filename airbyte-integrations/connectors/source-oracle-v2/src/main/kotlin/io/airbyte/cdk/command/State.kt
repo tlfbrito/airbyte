@@ -1,8 +1,8 @@
-package io.airbyte.cdk.core.command
+package io.airbyte.cdk.command
 
 import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.JsonNode
-import io.airbyte.cdk.core.operation.Operation
+import io.airbyte.cdk.operation.Operation
 import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.AirbyteStateMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -68,9 +68,9 @@ class AirbyteStateMessageListPOJO : ConnectorInputStateSupplier {
 @Singleton
 @Requires(property = CONNECTOR_STATE_PREFIX)
 class ConnectorInputStateValidator(
-    private val operation: Operation,
-    private val configSupplier: ConnectorConfigurationSupplier<out ConnectorConfiguration>,
-    private val stateSupplier: ConnectorInputStateSupplier,
+        private val operation: Operation,
+        private val configSupplier: ConnectorConfigurationSupplier<out ConnectorConfiguration>,
+        private val stateSupplier: ConnectorInputStateSupplier,
 ) : ApplicationEventListener<StartupEvent> {
 
     override fun onApplicationEvent(event: StartupEvent) {

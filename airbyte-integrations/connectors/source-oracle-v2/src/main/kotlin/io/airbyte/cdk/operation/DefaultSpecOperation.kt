@@ -2,7 +2,7 @@
  * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
  */
 
-package io.airbyte.cdk.core.operation
+package io.airbyte.cdk.operation
 
 import io.airbyte.commons.json.Jsons
 import io.airbyte.commons.resources.MoreResources

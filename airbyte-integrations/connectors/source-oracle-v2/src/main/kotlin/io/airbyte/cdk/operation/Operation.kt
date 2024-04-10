@@ -2,7 +2,7 @@
  * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
  */
 
-package io.airbyte.cdk.core.operation
+package io.airbyte.cdk.operation
 
 const val CONNECTOR_OPERATION: String = "airbyte.connector.operation"
 

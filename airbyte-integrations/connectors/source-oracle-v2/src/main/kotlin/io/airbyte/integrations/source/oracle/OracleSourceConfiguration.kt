@@ -3,14 +3,14 @@ package io.airbyte.integrations.source.oracle
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
-import io.airbyte.cdk.core.command.CONNECTOR_CONFIG_PREFIX
-import io.airbyte.cdk.core.command.ConnectorConfigurationSupplier
-import io.airbyte.cdk.core.command.SourceConnectorConfiguration
-import io.airbyte.cdk.core.command.SshKeyAuthTunnelConfiguration
-import io.airbyte.cdk.core.command.SshNoTunnelConfiguration
-import io.airbyte.cdk.core.command.SshPasswordAuthTunnelConfiguration
-import io.airbyte.cdk.core.command.SshTunnelConfiguration
-import io.airbyte.cdk.core.command.SshTunnelConfigurationPOJO
+import io.airbyte.cdk.command.CONNECTOR_CONFIG_PREFIX
+import io.airbyte.cdk.command.ConnectorConfigurationSupplier
+import io.airbyte.cdk.command.SourceConnectorConfiguration
+import io.airbyte.cdk.command.SshKeyAuthTunnelConfiguration
+import io.airbyte.cdk.command.SshNoTunnelConfiguration
+import io.airbyte.cdk.command.SshPasswordAuthTunnelConfiguration
+import io.airbyte.cdk.command.SshTunnelConfiguration
+import io.airbyte.cdk.command.SshTunnelConfigurationPOJO
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.commons.exceptions.ConnectionErrorException
 import io.airbyte.commons.io.IOs
@@ -41,13 +41,13 @@ import org.bouncycastle.util.io.pem.PemReader
 private val logger = KotlinLogging.logger {}
 
 data class OracleSourceConfiguration (
-        override val realHost: String,
-        override val realPort: Int,
-        override val sshTunnel: SshTunnelConfiguration,
-        override val jdbcUrl: String,
-        override val jdbcProperties: Map<String, String>,
-        val defaultSchema: String,
-        override val schemas: List<String>
+    override val realHost: String,
+    override val realPort: Int,
+    override val sshTunnel: SshTunnelConfiguration,
+    override val jdbcUrl: String,
+    override val jdbcProperties: Map<String, String>,
+    val defaultSchema: String,
+    override val schemas: List<String>
 ) : SourceConnectorConfiguration {
     override fun getDefaultNamespace(): Optional<String> = Optional.of(defaultSchema)
 

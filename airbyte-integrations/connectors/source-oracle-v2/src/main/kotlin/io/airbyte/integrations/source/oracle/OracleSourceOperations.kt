@@ -1,10 +1,11 @@
 package io.airbyte.integrations.source.oracle
 
-import io.airbyte.cdk.core.operation.SourceOperations
-import io.airbyte.cdk.core.operation.TableName
+import io.airbyte.cdk.source.SourceOperations
+import io.airbyte.cdk.source.TableName
 import io.micronaut.context.annotation.Primary
-import jakarta.inject.Named
+import jakarta.inject.Singleton
 
+@Singleton
 @Primary
 class OracleSourceOperations : SourceOperations {
 

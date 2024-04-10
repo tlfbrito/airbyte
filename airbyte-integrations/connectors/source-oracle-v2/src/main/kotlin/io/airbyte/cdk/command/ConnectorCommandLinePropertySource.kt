@@ -1,8 +1,8 @@
-package io.airbyte.cdk.core.command
+package io.airbyte.cdk.command
 
 import com.fasterxml.jackson.databind.JsonNode
-import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
-import io.airbyte.cdk.core.operation.OperationType
+import io.airbyte.cdk.operation.CONNECTOR_OPERATION
+import io.airbyte.cdk.operation.OperationType
 import io.airbyte.cdk.integrations.base.JavaBaseConstants
 import io.airbyte.commons.json.Jsons
 import io.github.oshai.kotlinlogging.KotlinLogging

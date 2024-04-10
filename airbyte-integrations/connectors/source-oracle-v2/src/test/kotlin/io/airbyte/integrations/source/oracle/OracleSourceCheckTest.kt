@@ -1,7 +1,7 @@
 package io.airbyte.integrations.source.oracle
 
-import io.airbyte.cdk.core.operation.CONNECTOR_OPERATION
-import io.airbyte.cdk.core.operation.DefaultCheckOperation
+import io.airbyte.cdk.operation.CONNECTOR_OPERATION
+import io.airbyte.cdk.operation.DefaultCheckOperation
 import io.airbyte.commons.io.IOs
 import io.micronaut.context.annotation.Property
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
