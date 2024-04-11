@@ -4,10 +4,7 @@
 
 package io.airbyte.cdk.operation
 
-import com.kjetland.jackson.jsonSchema.JsonSchemaConfig
-import com.kjetland.jackson.jsonSchema.JsonSchemaDraft
-import com.kjetland.jackson.jsonSchema.JsonSchemaGenerator
-import io.airbyte.commons.jackson.MoreMappers
+import io.airbyte.cdk.command.JsonParser
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.airbyte.protocol.models.v0.ConnectorSpecification
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -45,8 +42,8 @@ class DefaultSpecOperation(
             )
         }
         try {
-            val configurationClass: Class<*> = Class.forName(configurationClassName)
-            spec.connectionSpecification = generator.generateJsonSchema(configurationClass)
+            val configClass: Class<*> = Class.forName(configurationClassName)
+            spec.connectionSpecification = JsonParser.generator.generateJsonSchema(configClass)
         } catch (e: Exception) {
             logger.error(e) { "Invalid configuration class '$configurationClassName'." }
             throw OperationExecutionException(
@@ -60,13 +57,4 @@ class DefaultSpecOperation(
         )
     }
 
-    companion object {
-
-        val config: JsonSchemaConfig =
-            JsonSchemaConfig.vanillaJsonSchemaDraft4()
-                .withJsonSchemaDraft(JsonSchemaDraft.DRAFT_07)
-                .withFailOnUnknownProperties(false)
-
-        val generator = JsonSchemaGenerator(MoreMappers.initMapper(), config)
-    }
 }

@@ -21,7 +21,9 @@ dependencies {
     // CDK
 
     implementation 'com.kjetland:mbknor-jackson-jsonschema_2.13:1.0.39'
-    implementation 'org.apache.sshd:sshd-mina:2.11.0'
+    implementation 'com.networknt:json-schema-validator:1.4.0'
+    implementation 'org.apache.sshd:sshd-mina:2.12.1'
+    api 'com.fasterxml.jackson.module:jackson-module-kotlin'
 
     api "info.picocli:picocli:4.7.5"
     api "io.micronaut:micronaut-inject-java:4.3.13"

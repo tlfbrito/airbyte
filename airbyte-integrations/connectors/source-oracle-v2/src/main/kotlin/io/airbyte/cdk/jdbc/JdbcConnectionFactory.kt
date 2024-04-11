@@ -2,10 +2,6 @@ package io.airbyte.cdk.jdbc
 
 import io.airbyte.cdk.command.ConnectorConfigurationSupplier
 import io.airbyte.cdk.command.SourceConnectorConfiguration
-import io.airbyte.cdk.ssh.SshKeyAuthTunnelMethod
-import io.airbyte.cdk.ssh.SshNoTunnelMethod
-import io.airbyte.cdk.ssh.SshPasswordAuthTunnelMethod
-import io.airbyte.cdk.ssh.SshTunnelMethodSubType
 import io.airbyte.cdk.ssh.TunnelSession
 import io.airbyte.cdk.ssh.createTunnelSession
 import io.airbyte.commons.exceptions.ConfigErrorException
@@ -54,12 +50,8 @@ class JdbcConnectionFactory(
     override fun get(): Connection {
         val address: InetSocketAddress = tunnelSessionDelegate.value.address
         val jdbcUrl: String = String.format(config.jdbcUrlFmt, address.hostName, address.port)
+        logger.info { "Creating new connection for '$jdbcUrl'." }
         val props = Properties().apply { putAll(config.jdbcProperties) }
         return DriverManager.getConnection(jdbcUrl, props).also { it.isReadOnly = true }
     }
-
-
-
-
-
 }

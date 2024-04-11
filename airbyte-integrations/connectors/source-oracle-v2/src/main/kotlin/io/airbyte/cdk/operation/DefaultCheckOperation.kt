@@ -4,6 +4,8 @@
 
 package io.airbyte.cdk.operation
 
+import io.airbyte.cdk.command.ConnectorConfigurationSupplier
+import io.airbyte.cdk.command.SourceConnectorConfiguration
 import io.airbyte.cdk.integrations.base.AirbyteTraceMessageUtility
 import io.airbyte.cdk.integrations.base.errors.messages.ErrorMessage
 import io.airbyte.cdk.integrations.source.relationaldb.AbstractDbSource
@@ -27,16 +29,14 @@ import org.apache.commons.lang3.exception.ExceptionUtils
 
 private val logger = KotlinLogging.logger {}
 
-const val COMMON_EXCEPTION_MESSAGE_TEMPLATE: String =
-    "Could not connect with provided configuration. Error: %s"
-
 @Singleton
 @Named("checkOperation")
 @Requires(property = CONNECTOR_OPERATION, value = "check")
 class DefaultCheckOperation(
-        private val sourceOperations: SourceOperations,
-        private val metadataQuerier: MetadataQuerier,
-        @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
+    private val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>,
+    private val sourceOperations: SourceOperations,
+    private val metadataQuerier: MetadataQuerier,
+    @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
 ) : Operation, AutoCloseable {
 
     override val type = OperationType.CHECK
@@ -45,7 +45,7 @@ class DefaultCheckOperation(
         try {
             doCheck()
         } catch (e: SQLException) {
-            logger.info(e) { "SQLException while checking config." }
+            logger.debug(e) { "SQLException while checking config." }
             val message: String = listOfNotNull(
                 e.sqlState?.let { "State code: $it" },
                 e.errorCode.takeIf { it != 0 }?.let { "Error code: $it" },
@@ -66,15 +66,17 @@ class DefaultCheckOperation(
                 .withConnectionStatus(AirbyteConnectionStatus()
                     .withMessage(message)
                     .withStatus(AirbyteConnectionStatus.Status.FAILED)))
+            logger.info { "Config check failed." }
             return
         } catch (e: Exception) {
-            logger.info(e) { "Exception while checking config." }
+            logger.debug (e) { "Exception while checking config." }
             ApmTraceUtils.addExceptionToTrace(e)
             outputRecordCollector.accept(AirbyteMessage()
                 .withType(AirbyteMessage.Type.CONNECTION_STATUS)
                 .withConnectionStatus(AirbyteConnectionStatus()
                     .withMessage(String.format(COMMON_EXCEPTION_MESSAGE_TEMPLATE, e.message))
                     .withStatus(AirbyteConnectionStatus.Status.FAILED)))
+            logger.info { "Config check failed." }
             return
         }
         logger.info { "Config check completed successfully." }
@@ -89,6 +91,8 @@ class DefaultCheckOperation(
     }
 
     private fun doCheck() {
+        logger.info { "Validating config internal consistency." }
+        configSupplier.get()
         logger.info { "Connecting for config check, querying all table names in config schemas." }
         val tableNames: List<TableName> = metadataQuerier.tableNames()
         logger.info { "Discovered ${tableNames.size} table(s)." }
@@ -109,5 +113,9 @@ class DefaultCheckOperation(
             return
         }
         throw RuntimeException("Unable to query any of the discovered table(s): $tableNames")
+    }
+    companion object {
+        const val COMMON_EXCEPTION_MESSAGE_TEMPLATE: String =
+            "Could not connect with provided configuration. Error: %s"
     }
 }

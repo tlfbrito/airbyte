@@ -1,7 +1,5 @@
 package io.airbyte.cdk.ssh
 
-import io.airbyte.cdk.integrations.base.ssh.SshTunnel
-import io.airbyte.cdk.jdbc.JdbcConnectionFactory
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.github.oshai.kotlinlogging.KotlinLogging
 import java.io.StringReader
@@ -30,23 +28,31 @@ class TunnelSession internal constructor(
 ) : AutoCloseable {
 
     override fun close() {
-        clientSession?.close()
-        client?.stop()
+        clientSession?.let {
+            logger.info { "Closing SSH client session." }
+            it.close()
+        }
+        client?.let {
+            logger.info { "Closing SSH client." }
+            it.stop()
+        }
     }
 }
 
 fun createTunnelSession(
     remote: SshdSocketAddress,
-    sshTunnel: SshTunnelMethodSubType,
+    sshTunnel: SshTunnelMethod,
     connectionOptions: SshConnectionOptions,
 ): TunnelSession {
     if (sshTunnel is SshNoTunnelMethod) {
         return TunnelSession(remote.toInetSocketAddress(), null, null)
     }
+    logger.info { "Creating SSH client." }
     val client: SshClient = createClient(connectionOptions)
     try {
         client.start()
         // Create session.
+        logger.info { "Creating SSH client session." }
         val connectFuture: ConnectFuture = when (sshTunnel) {
             SshNoTunnelMethod -> TODO("unreachable code")
             is SshKeyAuthTunnelMethod ->

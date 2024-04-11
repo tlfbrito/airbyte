@@ -6,7 +6,7 @@ package io.airbyte.cdk.command
 
 import io.airbyte.cdk.operation.Operation
 import io.airbyte.cdk.ssh.SshConnectionOptions
-import io.airbyte.cdk.ssh.SshTunnelMethodSubType
+import io.airbyte.cdk.ssh.SshTunnelMethod
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.protocol.models.v0.AirbyteStateMessage.AirbyteStateType
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -26,7 +26,7 @@ interface ConnectorConfiguration {
 
     val realHost: String
     val realPort: Int
-    val sshTunnel: SshTunnelMethodSubType
+    val sshTunnel: SshTunnelMethod
     val sshConnectionOptions: SshConnectionOptions
 
     fun getDefaultNamespace(): Optional<String>

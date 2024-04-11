@@ -4,5 +4,5 @@ micronaut:
 
 airbyte:
   connector:
-    configurationClass: "io.airbyte.integrations.source.oracle.ConfigurationPOJO"
+    configurationClass: "io.airbyte.integrations.source.oracle.Configuration"
     documentationUrl: "https://docs.airbyte.com/integrations/sources/oracle"

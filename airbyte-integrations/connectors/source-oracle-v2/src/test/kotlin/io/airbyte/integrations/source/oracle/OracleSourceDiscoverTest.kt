@@ -22,6 +22,7 @@ class OracleSourceDiscoverTest {
     @Property(name = "airbyte.connector.config.port", value = "1521")
     @Property(name = "airbyte.connector.config.username", value = "FOO")
     @Property(name = "airbyte.connector.config.password", value = "BAR")
+    @Property(name = "airbyte.connector.config.schemas", value = "FOO")
     @Property(
         name = "airbyte.connector.config.connection_data.connection_type",
         value = "service_name"

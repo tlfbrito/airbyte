@@ -4,12 +4,17 @@
 
 package io.airbyte.integrations.source.oracle
 
+import com.fasterxml.jackson.annotation.JsonAnyGetter
+import com.fasterxml.jackson.annotation.JsonAnySetter
+import com.fasterxml.jackson.annotation.JsonGetter
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonPropertyDescription
 import com.fasterxml.jackson.annotation.JsonPropertyOrder
+import com.fasterxml.jackson.annotation.JsonSetter
 import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
+import com.fasterxml.jackson.annotation.JsonValue
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaArrayWithUniqueItems
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaDefault
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaDescription
@@ -18,15 +23,12 @@ import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaTitle
 import io.airbyte.cdk.command.CONNECTOR_CONFIG_PREFIX
 import io.airbyte.cdk.command.ConnectorConfigurationSupplier
 import io.airbyte.cdk.command.JsonParser
-import io.airbyte.cdk.ssh.MicronautFriendlySshTunnelMethod
 import io.airbyte.cdk.command.SourceConnectorConfiguration
+import io.airbyte.cdk.ssh.MicronautFriendlySshTunnelMethod
 import io.airbyte.cdk.ssh.SshConnectionOptions
-import io.airbyte.cdk.ssh.SshConnectionOptionsPOJO
 import io.airbyte.cdk.ssh.SshTunnelMethod
-import io.airbyte.cdk.ssh.SshTunnelMethodSubType
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.commons.io.IOs
-import io.airbyte.commons.json.Jsons
 import io.airbyte.protocol.models.v0.AirbyteStateMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.ConfigurationBuilder
@@ -43,12 +45,13 @@ import java.util.*
 import org.apache.commons.lang3.RandomStringUtils
 import org.bouncycastle.util.io.pem.PemReader
 
+
 private val logger = KotlinLogging.logger {}
 
 data class OracleSourceConfiguration(
     override val realHost: String,
     override val realPort: Int,
-    override val sshTunnel: SshTunnelMethodSubType,
+    override val sshTunnel: SshTunnelMethod,
     override val sshConnectionOptions: SshConnectionOptions,
     override val jdbcUrlFmt: String,
     override val jdbcProperties: Map<String, String>,
@@ -65,31 +68,27 @@ data class OracleSourceConfiguration(
 @JsonSchemaTitle("Oracle Source Spec")
 @JsonPropertyOrder(
     value =
-        [
-            "host",
-            "port",
-            "connection_data",
-            "username",
-            "password",
-            "schemas",
-            "jdbc_url_params",
-            "encryption"
-        ]
+    [
+        "host",
+        "port",
+        "connection_data",
+        "username",
+        "password",
+        "schemas",
+        "jdbc_url_params",
+        "encryption",
+    ],
 )
-private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceConfiguration> {
+private class Configuration : ConnectorConfigurationSupplier<OracleSourceConfiguration> {
 
     @JsonIgnore var json: String? = null
 
-    @get:JsonIgnore
-    @delegate:JsonIgnore
-    private val validated: OracleSourceConfiguration by lazy {
-        // When the config is set via micronaut annotations instead of via a JSON file
-        // passed on the command line, we need to round-trip the current object.
-        val jsonString: String = json ?: Jsons.serialize(this)
-        buildConfiguration(JsonParser.parse(jsonString))
+    @JsonIgnore
+    private val validated: Lazy<OracleSourceConfiguration> = lazy {
+        buildConfiguration(JsonParser.parse(json, this))
     }
 
-    @JsonIgnore override fun get(): OracleSourceConfiguration = validated
+    @JsonIgnore override fun get(): OracleSourceConfiguration = validated.value
 
     @JsonProperty("host", required = true)
     @JsonSchemaTitle("Host")
@@ -106,14 +105,27 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
             "Oracle Corporations recommends the following port numbers:\n" +
             "1521 - Default listening port for client connections to the listener. \n" +
             "2484 - Recommended and officially registered listening port for client " +
-            "connections to the listener using TCP/IP with SSL."
+            "connections to the listener using TCP/IP with SSL.",
     )
     var port: Int? = null
 
-    @JsonProperty("connection_data")
-    @JsonSchemaInject(json = """{"order":3}""")
+    @JsonIgnore
     @ConfigurationBuilder(configurationPrefix = "connection_data")
-    val connectionData: ConnectionData = MicronautFriendlyConnectionData()
+    val connectionData = MicronautFriendlyConnectionData()
+
+    @JsonIgnore
+    var connectionDataJson: ConnectionData? = null
+
+    @JsonSetter("connection_data")
+    fun setConnectionDataValue(value: ConnectionData) {
+        connectionDataJson = value
+    }
+
+    @JsonGetter("connection_data")
+    @JsonSchemaInject(json = """{"order":3}""")
+    fun getConnectionDataValue(): ConnectionData =
+        connectionDataJson ?: connectionData.asConnectionData()
+
 
     @JsonProperty("username", required = true)
     @JsonSchemaTitle("User")
@@ -139,40 +151,71 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
     @JsonPropertyDescription(
         "Additional properties to pass to the JDBC URL string when connecting to the database " +
             "formatted as 'key=value' pairs separated by the symbol '&'. " +
-            "(example: key1=value1&key2=value2&key3=value3)."
+            "(example: key1=value1&key2=value2&key3=value3).",
     )
     @JsonSchemaInject(json = """{"order":7}""")
     var jdbcUrlParams: String? = null
 
-    @JsonProperty("encryption")
+    @JsonIgnore
     @ConfigurationBuilder(configurationPrefix = "encryption")
+    val encryption = MicronautFriendlyEncryption()
+
+    @JsonIgnore
+    var encryptionJson: Encryption? = null
+
+    @JsonSetter("encryption")
+    fun setEncryptionValue(value: Encryption) {
+        encryptionJson = value
+    }
+
+    @JsonGetter("encryption")
     @JsonSchemaInject(json = """{"order":8}""")
-    val encryption: Encryption = MicronautFriendlyEncryption()
+    fun getEncryptionValue(): Encryption =
+        encryptionJson ?: encryption.asEncryption()
 
-    @JsonProperty("tunnel_method")
+    @JsonIgnore
     @ConfigurationBuilder(configurationPrefix = "tunnel_method")
-    @JsonSchemaInject(json = """{"order":9}""")
-    var tunnelMethod: SshTunnelMethod = MicronautFriendlySshTunnelMethod()
+    val tunnelMethod = MicronautFriendlySshTunnelMethod()
 
-    @JsonProperty("ssh_connection_options")
-    @ConfigurationBuilder(configurationPrefix = "ssh_connection_options")
-    var sshConnectionOptions: SshConnectionOptionsPOJO = SshConnectionOptionsPOJO()
+    @JsonIgnore
+    var tunnelMethodJson: SshTunnelMethod? = null
+
+    @JsonSetter("tunnel_method")
+    fun setTunnelMethodValue(value: SshTunnelMethod) {
+        tunnelMethodJson = value
+    }
+
+    @JsonGetter("tunnel_method")
+    @JsonSchemaInject(json = """{"order":9}""")
+    fun getTunnelMethodValue(): SshTunnelMethod =
+        tunnelMethodJson ?: tunnelMethod.asSshTunnelMethod()
+
+    @JsonIgnore
+    var additionalPropertiesMap = mutableMapOf<String, Any>()
+
+    @JsonAnyGetter
+    fun getAdditionalProperties(): Map<String, Any> {
+        return additionalPropertiesMap
+    }
+
+    @JsonAnySetter
+    fun setAdditionalProperty(name: String, value: Any) {
+        additionalPropertiesMap[name] = value
+    }
 }
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "connection_type")
 @JsonSubTypes(
     JsonSubTypes.Type(value = ServiceName::class, name = "service_name"),
-    JsonSubTypes.Type(value = Sid::class, name = "sid")
+    JsonSubTypes.Type(value = Sid::class, name = "sid"),
 )
 @JsonSchemaTitle("Connect by")
 @JsonSchemaDescription("Connect data that will be used for DB connection.")
 private sealed interface ConnectionData
 
-private sealed interface ConnectionDataSubType : ConnectionData
-
 @JsonSchemaTitle("Service name")
 @JsonSchemaDescription("Use service name.")
-private class ServiceName : ConnectionDataSubType {
+private class ServiceName : ConnectionData {
 
     @JsonProperty("service_name", required = true)
     @JsonSchemaTitle("Service name")
@@ -181,7 +224,7 @@ private class ServiceName : ConnectionDataSubType {
 
 @JsonSchemaTitle("System ID (SID)")
 @JsonSchemaDescription("Use Oracle System Identifier.")
-private class Sid : ConnectionDataSubType {
+private class Sid : ConnectionData {
 
     @JsonProperty("sid", required = true)
     @JsonSchemaTitle("System ID (SID)")
@@ -189,12 +232,14 @@ private class Sid : ConnectionDataSubType {
 }
 
 @ConfigurationProperties("$CONNECTOR_CONFIG_PREFIX.connection_data")
-private class MicronautFriendlyConnectionData : ConnectionData {
-    var connectionType: String? = null
+private class MicronautFriendlyConnectionData {
+
+    var connectionType: String = "service_name"
     var serviceName: String? = null
     var sid: String? = null
 
-    fun asConnectionDataSubtype(): ConnectionDataSubType =
+    @JsonValue
+    fun asConnectionData(): ConnectionData =
         when (connectionType) {
             "service_name" -> ServiceName().also { it.serviceName = serviceName }
             "sid" -> Sid().also { it.sid = sid }
@@ -206,25 +251,23 @@ private class MicronautFriendlyConnectionData : ConnectionData {
 @JsonSubTypes(
     JsonSubTypes.Type(value = Unencrypted::class, name = "unencrypted"),
     JsonSubTypes.Type(value = EncryptionAlgorithm::class, name = "client_nne"),
-    JsonSubTypes.Type(value = SslCertificate::class, name = "encrypted_verify_certificate")
+    JsonSubTypes.Type(value = SslCertificate::class, name = "encrypted_verify_certificate"),
 )
 @JsonSchemaTitle("Encryption")
 @JsonSchemaDescription("The encryption method which is used when communicating with the database.")
 private sealed interface Encryption
 
-private sealed interface EncryptionSubType : Encryption
-
 @JsonSchemaTitle("Unencrypted")
 @JsonSchemaDescription("Data transfer will not be encrypted.")
-private data object Unencrypted : EncryptionSubType
+private data object Unencrypted : Encryption
 
 @JsonSchemaTitle("Native Network Encryption (NNE)")
 @JsonSchemaDescription(
     "The native network encryption gives you the ability to encrypt database " +
         "connections, without the configuration overhead of TCP/IP and SSL/TLS and without the need " +
-        "to open and listen on different ports."
+        "to open and listen on different ports.",
 )
-private class EncryptionAlgorithm : EncryptionSubType {
+private class EncryptionAlgorithm : Encryption {
 
     @JsonProperty("encryption_algorithm", required = true)
     @JsonSchemaTitle("Encryption Algorithm")
@@ -236,26 +279,27 @@ private class EncryptionAlgorithm : EncryptionSubType {
 
 @JsonSchemaTitle("TLS Encrypted (verify certificate)")
 @JsonSchemaDescription("Verify and use the certificate provided by the server.")
-private class SslCertificate : EncryptionSubType {
+private class SslCertificate : Encryption {
 
     @JsonProperty("ssl_certificate", required = true)
     @JsonSchemaTitle("SL PEM File")
     @JsonPropertyDescription(
         "Privacy Enhanced Mail (PEM) files are concatenated certificate " +
-            "containers frequently used in certificate installations."
+            "containers frequently used in certificate installations.",
     )
     @JsonSchemaInject(json = """{"airbyte_secret":true,"multiline":true}""")
     var sslCertificate: String? = null
 }
 
 @ConfigurationProperties("$CONNECTOR_CONFIG_PREFIX.encryption")
-private class MicronautFriendlyEncryption : Encryption {
+private class MicronautFriendlyEncryption {
 
     var encryptionMethod: String = "unencrypted"
     var encryptionAlgorithm: String? = null
     var sslCertificate: String? = null
 
-    fun asEncryptionSubtype(): EncryptionSubType =
+    @JsonValue
+    fun asEncryption(): Encryption =
         when (encryptionMethod) {
             "unencrypted" -> Unencrypted
             "client_nne" ->
@@ -266,16 +310,10 @@ private class MicronautFriendlyEncryption : Encryption {
         }
 }
 
-private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfiguration {
+private fun buildConfiguration(pojo: Configuration): OracleSourceConfiguration {
     val realHost: String = pojo.host!!
     val realPort: Int = pojo.port!!
-    val sshTunnel: SshTunnelMethodSubType =
-        pojo.tunnelMethod.let {
-            when (it) {
-                is SshTunnelMethodSubType -> it
-                is MicronautFriendlySshTunnelMethod -> it.asSshTunnelMethodSubType()
-            }
-        }
+    val sshTunnel: SshTunnelMethod = pojo.getTunnelMethodValue()
     val jdbcProperties = mutableMapOf<String, String>()
     jdbcProperties["user"] = pojo.username!!
     pojo.password?.let { jdbcProperties["password"] = it }
@@ -306,11 +344,7 @@ private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfigurati
         }
     }
     // Determine protocol and configure encryption.
-    val encryption: EncryptionSubType =
-        when (pojo.encryption) {
-            is EncryptionSubType -> pojo.encryption
-            is MicronautFriendlyEncryption -> pojo.encryption.asEncryptionSubtype()
-        }
+    val encryption: Encryption = pojo.getEncryptionValue()
     if (encryption is SslCertificate) {
         val pemFileContents: String = encryption.sslCertificate!!
         val pemReader = PemReader(StringReader(pemFileContents))
@@ -337,11 +371,7 @@ private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfigurati
     val protocol: String = if (encryption is SslCertificate) "TCPS" else "TCP"
     // Build JDBC URL
     val address = "(ADDRESS=(PROTOCOL=${protocol})(HOST=%s)(PORT=%d))"
-    val connectionData: ConnectionDataSubType =
-        when (pojo.connectionData) {
-            is ConnectionDataSubType -> pojo.connectionData
-            is MicronautFriendlyConnectionData -> pojo.connectionData.asConnectionDataSubtype()
-        }
+    val connectionData: ConnectionData = pojo.getConnectionDataValue()
     val (connectDataType: String, connectDataValue: String) =
         when (connectionData) {
             is ServiceName -> "SERVICE_NAME" to connectionData.serviceName!!
@@ -354,7 +384,7 @@ private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfigurati
         realHost = realHost,
         realPort = realPort,
         sshTunnel = sshTunnel,
-        sshConnectionOptions = SshConnectionOptions.from(pojo.sshConnectionOptions),
+        sshConnectionOptions = SshConnectionOptions.fromAdditionalProperties(pojo.getAdditionalProperties()),
         jdbcUrlFmt = jdbcUrlFmt,
         jdbcProperties = jdbcProperties,
         defaultSchema = defaultSchema,

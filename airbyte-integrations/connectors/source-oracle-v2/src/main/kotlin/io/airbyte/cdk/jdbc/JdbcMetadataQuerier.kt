@@ -95,6 +95,7 @@ class JdbcMetadataQuerier(
 
     override fun close() {
         if (connDelegate.isInitialized()) {
+            logger.info { "Closing JDBC connection." }
             conn.close()
         }
         jdbcConnectionFactory.close()
