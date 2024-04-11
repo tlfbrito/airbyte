@@ -18,13 +18,12 @@ import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaTitle
 import io.airbyte.cdk.command.CONNECTOR_CONFIG_PREFIX
 import io.airbyte.cdk.command.ConnectorConfigurationSupplier
 import io.airbyte.cdk.command.JsonParser
-import io.airbyte.cdk.command.MicronautFriendlySshTunnelMethod
+import io.airbyte.cdk.ssh.MicronautFriendlySshTunnelMethod
 import io.airbyte.cdk.command.SourceConnectorConfiguration
-import io.airbyte.cdk.command.SshKeyAuthTunnelMethod
-import io.airbyte.cdk.command.SshNoTunnelMethod
-import io.airbyte.cdk.command.SshPasswordAuthTunnelMethod
-import io.airbyte.cdk.command.SshTunnelMethod
-import io.airbyte.cdk.command.SshTunnelMethodSubType
+import io.airbyte.cdk.ssh.SshConnectionOptions
+import io.airbyte.cdk.ssh.SshConnectionOptionsPOJO
+import io.airbyte.cdk.ssh.SshTunnelMethod
+import io.airbyte.cdk.ssh.SshTunnelMethodSubType
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.commons.io.IOs
 import io.airbyte.commons.json.Jsons
@@ -49,12 +48,14 @@ private val logger = KotlinLogging.logger {}
 data class OracleSourceConfiguration(
     override val realHost: String,
     override val realPort: Int,
-    override val sshTunnel: SshTunnelMethod,
-    override val jdbcUrl: String,
+    override val sshTunnel: SshTunnelMethodSubType,
+    override val sshConnectionOptions: SshConnectionOptions,
+    override val jdbcUrlFmt: String,
     override val jdbcProperties: Map<String, String>,
     val defaultSchema: String,
     override val schemas: List<String>
 ) : SourceConnectorConfiguration {
+
     override fun getDefaultNamespace(): Optional<String> = Optional.of(defaultSchema)
 
     override val expectedStateType = AirbyteStateMessage.AirbyteStateType.STREAM
@@ -152,6 +153,10 @@ private class ConfigurationPOJO : ConnectorConfigurationSupplier<OracleSourceCon
     @ConfigurationBuilder(configurationPrefix = "tunnel_method")
     @JsonSchemaInject(json = """{"order":9}""")
     var tunnelMethod: SshTunnelMethod = MicronautFriendlySshTunnelMethod()
+
+    @JsonProperty("ssh_connection_options")
+    @ConfigurationBuilder(configurationPrefix = "ssh_connection_options")
+    var sshConnectionOptions: SshConnectionOptionsPOJO = SshConnectionOptionsPOJO()
 }
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "connection_type")
@@ -271,12 +276,6 @@ private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfigurati
                 is MicronautFriendlySshTunnelMethod -> it.asSshTunnelMethodSubType()
             }
         }
-    val (host, port) =
-        when (sshTunnel) {
-            is SshKeyAuthTunnelMethod -> sshTunnel.host to sshTunnel.port
-            is SshPasswordAuthTunnelMethod -> sshTunnel.host to sshTunnel.port
-            is SshNoTunnelMethod -> realHost to realPort
-        }
     val jdbcProperties = mutableMapOf<String, String>()
     jdbcProperties["user"] = pojo.username!!
     pojo.password?.let { jdbcProperties["password"] = it }
@@ -337,7 +336,7 @@ private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfigurati
     }
     val protocol: String = if (encryption is SslCertificate) "TCPS" else "TCP"
     // Build JDBC URL
-    val address = "(ADDRESS=(PROTOCOL=${protocol})(HOST=${host})(PORT=${port}))"
+    val address = "(ADDRESS=(PROTOCOL=${protocol})(HOST=%s)(PORT=%d))"
     val connectionData: ConnectionDataSubType =
         when (pojo.connectionData) {
             is ConnectionDataSubType -> pojo.connectionData
@@ -349,13 +348,14 @@ private fun buildConfiguration(pojo: ConfigurationPOJO): OracleSourceConfigurati
             is Sid -> "SID" to connectionData.sid!!
         }
     val connectData = "(CONNECT_DATA=($connectDataType=$connectDataValue))"
-    val jdbcUrl = "jdbc:oracle:thin:@(DESCRIPTION=${address}${connectData})"
+    val jdbcUrlFmt = "jdbc:oracle:thin:@(DESCRIPTION=${address}${connectData})"
     val defaultSchema: String = pojo.username!!.uppercase()
     return OracleSourceConfiguration(
         realHost = realHost,
         realPort = realPort,
         sshTunnel = sshTunnel,
-        jdbcUrl = jdbcUrl,
+        sshConnectionOptions = SshConnectionOptions.from(pojo.sshConnectionOptions),
+        jdbcUrlFmt = jdbcUrlFmt,
         jdbcProperties = jdbcProperties,
         defaultSchema = defaultSchema,
         schemas = pojo.schemas.ifEmpty { listOf(defaultSchema) },

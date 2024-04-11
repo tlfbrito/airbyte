@@ -1,7 +1,3 @@
-/*
- * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
- */
-
-package io.airbyte.cdk.source
+package io.airbyte.cdk.jdbc
 
 data class TableName(val catalog: String?, val schema: String?, val name: String, val type: String)

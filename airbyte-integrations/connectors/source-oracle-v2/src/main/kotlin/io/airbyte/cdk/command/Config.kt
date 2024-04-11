@@ -5,6 +5,8 @@
 package io.airbyte.cdk.command
 
 import io.airbyte.cdk.operation.Operation
+import io.airbyte.cdk.ssh.SshConnectionOptions
+import io.airbyte.cdk.ssh.SshTunnelMethodSubType
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.airbyte.protocol.models.v0.AirbyteStateMessage.AirbyteStateType
 import io.github.oshai.kotlinlogging.KotlinLogging
@@ -12,8 +14,6 @@ import io.micronaut.context.annotation.Requires
 import io.micronaut.context.event.ApplicationEventListener
 import io.micronaut.context.event.StartupEvent
 import jakarta.inject.Singleton
-import java.sql.Connection
-import java.sql.DriverManager
 import java.util.*
 import java.util.function.Supplier
 
@@ -26,7 +26,8 @@ interface ConnectorConfiguration {
 
     val realHost: String
     val realPort: Int
-    val sshTunnel: SshTunnelMethod
+    val sshTunnel: SshTunnelMethodSubType
+    val sshConnectionOptions: SshConnectionOptions
 
     fun getDefaultNamespace(): Optional<String>
 }
@@ -37,15 +38,10 @@ interface SourceConnectorConfiguration : ConnectorConfiguration {
 
     val expectedStateType: AirbyteStateType
 
-    val jdbcUrl: String
+    val jdbcUrlFmt: String
     val jdbcProperties: Map<String, String>
 
     val schemas: List<String>
-
-    fun createConnection(): Connection =
-        DriverManager.getConnection(jdbcUrl, Properties().apply { putAll(jdbcProperties) }).also {
-            it.isReadOnly = true
-        }
 }
 
 interface DestinationConnectorConfiguration : ConnectorConfiguration {

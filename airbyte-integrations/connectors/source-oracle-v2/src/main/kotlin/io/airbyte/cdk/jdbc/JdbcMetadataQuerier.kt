@@ -1,30 +1,23 @@
-/*
- * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
- */
-
-package io.airbyte.cdk.source
+package io.airbyte.cdk.jdbc
 
 import io.airbyte.cdk.command.ConnectorConfigurationSupplier
 import io.airbyte.cdk.command.SourceConnectorConfiguration
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Prototype
-import java.sql.Connection
-import java.sql.JDBCType
-import java.sql.ResultSet
-import java.sql.ResultSetMetaData
-import java.sql.SQLException
-import java.sql.Statement
+import java.sql.*
 
 private val logger = KotlinLogging.logger {}
 
 @Prototype
 class JdbcMetadataQuerier(
-    private val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>
+    private val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>,
+    private val jdbcConnectionFactory: JdbcConnectionFactory
 ) : MetadataQuerier {
 
     private val config: SourceConnectorConfiguration by lazy { configSupplier.get() }
 
-    private val conn: Connection by lazy { config.createConnection() }
+    private val connDelegate: Lazy<Connection> = lazy { jdbcConnectionFactory.get() }
+    private val conn: Connection by connDelegate
 
     override fun tableNames(): List<TableName> {
         val results = mutableListOf<TableName>()
@@ -32,12 +25,12 @@ class JdbcMetadataQuerier(
             val rs: ResultSet = conn.metaData.getTables(null, schema, null, null)
             while (rs.next()) {
                 val tableName =
-                    TableName(
-                        catalog = rs.getString("TABLE_CAT"),
-                        schema = rs.getString("TABLE_SCHEM"),
-                        name = rs.getString("TABLE_NAME"),
-                        type = rs.getString("TABLE_TYPE") ?: "",
-                    )
+                        TableName(
+                                catalog = rs.getString("TABLE_CAT"),
+                                schema = rs.getString("TABLE_SCHEM"),
+                                name = rs.getString("TABLE_NAME"),
+                                type = rs.getString("TABLE_TYPE") ?: "",
+                        )
                 results.add(tableName)
             }
         }
@@ -52,24 +45,24 @@ class JdbcMetadataQuerier(
             val meta: ResultSetMetaData = stmt.executeQuery(sql).metaData
             return (1..meta.columnCount).map {
                 ColumnMetadata(
-                    name = meta.getColumnName(it),
-                    type = swallow { meta.getColumnType(it) }?.let { JDBCType.valueOf(it) },
-                    typeName = swallow { meta.getColumnTypeName(it) },
-                    klazz = swallow { meta.getColumnClassName(it) }?.let { Class.forName(it) },
-                    isAutoIncrement = swallow { meta.isAutoIncrement(it) },
-                    isCaseSensitive = swallow { meta.isCaseSensitive(it) },
-                    isSearchable = swallow { meta.isSearchable(it) },
-                    isCurrency = swallow { meta.isCurrency(it) },
-                    isNullable =
+                        name = meta.getColumnName(it),
+                        type = swallow { meta.getColumnType(it) }?.let { JDBCType.valueOf(it) },
+                        typeName = swallow { meta.getColumnTypeName(it) },
+                        klazz = swallow { meta.getColumnClassName(it) }?.let { Class.forName(it) },
+                        isAutoIncrement = swallow { meta.isAutoIncrement(it) },
+                        isCaseSensitive = swallow { meta.isCaseSensitive(it) },
+                        isSearchable = swallow { meta.isSearchable(it) },
+                        isCurrency = swallow { meta.isCurrency(it) },
+                        isNullable =
                         when (swallow { meta.isNullable(it) }) {
                             ResultSetMetaData.columnNoNulls -> false
                             ResultSetMetaData.columnNullable -> true
                             else -> null
                         },
-                    isSigned = swallow { meta.isSigned(it) },
-                    displaySize = swallow { meta.getColumnDisplaySize(it) },
-                    precision = swallow { meta.getPrecision(it) },
-                    scale = swallow { meta.getScale(it) },
+                        isSigned = swallow { meta.isSigned(it) },
+                        displaySize = swallow { meta.getColumnDisplaySize(it) },
+                        precision = swallow { meta.getPrecision(it) },
+                        scale = swallow { meta.getScale(it) },
                 )
             }
         }
@@ -101,6 +94,9 @@ class JdbcMetadataQuerier(
     }
 
     override fun close() {
-        conn.close()
+        if (connDelegate.isInitialized()) {
+            conn.close()
+        }
+        jdbcConnectionFactory.close()
     }
 }

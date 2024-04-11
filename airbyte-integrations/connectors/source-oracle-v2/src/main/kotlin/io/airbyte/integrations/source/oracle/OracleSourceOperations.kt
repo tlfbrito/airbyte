@@ -4,8 +4,8 @@
 
 package io.airbyte.integrations.source.oracle
 
-import io.airbyte.cdk.source.SourceOperations
-import io.airbyte.cdk.source.TableName
+import io.airbyte.cdk.jdbc.SourceOperations
+import io.airbyte.cdk.jdbc.TableName
 import jakarta.inject.Singleton
 
 @Singleton

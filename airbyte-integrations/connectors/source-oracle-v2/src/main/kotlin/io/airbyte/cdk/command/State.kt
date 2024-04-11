@@ -27,16 +27,7 @@ class ConnectorInputStateSupplierImpl : ConnectorInputStateSupplier {
     var json: String = "[]"
 
     private val validated: List<AirbyteStateMessage> by lazy {
-        val list: List<AirbyteStateMessage> =
-            try {
-                JsonParser.parse<List<AirbyteStateMessage>>(json)
-            } catch (e: Exception) {
-                try {
-                    listOf(JsonParser.parse<AirbyteStateMessage>(json))
-                } catch (_: Exception) {
-                    throw e
-                }
-            }
+        val list: List<AirbyteStateMessage> = JsonParser.parseList(json)
         if (list.isEmpty()) {
             return@lazy listOf<AirbyteStateMessage>()
         }

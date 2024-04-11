@@ -4,10 +4,10 @@
 
 package io.airbyte.cdk.operation
 
-import io.airbyte.cdk.source.ColumnMetadata
-import io.airbyte.cdk.source.MetadataQuerier
-import io.airbyte.cdk.source.SourceOperations
-import io.airbyte.cdk.source.TableName
+import io.airbyte.cdk.jdbc.ColumnMetadata
+import io.airbyte.cdk.jdbc.MetadataQuerier
+import io.airbyte.cdk.jdbc.SourceOperations
+import io.airbyte.cdk.jdbc.TableName
 import io.airbyte.protocol.models.Field
 import io.airbyte.protocol.models.v0.AirbyteCatalog
 import io.airbyte.protocol.models.v0.AirbyteMessage
@@ -28,9 +28,9 @@ private val logger = KotlinLogging.logger {}
 @Requires(property = CONNECTOR_OPERATION, value = "discover")
 @Requires(env = ["source"])
 class DefaultDiscoverOperation(
-    private val sourceOperations: SourceOperations,
-    private val metadataQuerier: MetadataQuerier,
-    @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
+        private val sourceOperations: SourceOperations,
+        private val metadataQuerier: MetadataQuerier,
+        @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
 ) : Operation, AutoCloseable {
 
     override val type = OperationType.DISCOVER

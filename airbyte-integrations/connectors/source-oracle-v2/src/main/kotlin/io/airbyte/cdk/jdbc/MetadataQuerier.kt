@@ -1,8 +1,4 @@
-/*
- * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
- */
-
-package io.airbyte.cdk.source
+package io.airbyte.cdk.jdbc
 
 interface MetadataQuerier : AutoCloseable {
 

@@ -2,7 +2,7 @@
  * Copyright (c) 2024 Airbyte, Inc., all rights reserved.
  */
 
-package io.airbyte.cdk.command
+package io.airbyte.cdk.ssh
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonPropertyDescription
@@ -12,8 +12,11 @@ import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaDefault
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaDescription
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaInject
 import com.kjetland.jackson.jsonSchema.annotations.JsonSchemaTitle
+import io.airbyte.cdk.command.CONNECTOR_CONFIG_PREFIX
 import io.airbyte.commons.exceptions.ConfigErrorException
 import io.micronaut.context.annotation.ConfigurationProperties
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "tunnel_method")
 @JsonSubTypes(

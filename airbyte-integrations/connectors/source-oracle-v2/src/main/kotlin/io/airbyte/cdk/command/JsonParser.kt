@@ -15,31 +15,38 @@ import io.airbyte.validation.json.JsonSchemaValidator
 
 data object JsonParser {
 
-    inline fun <reified T> parse(json: String): T {
+    inline fun <reified T> parseList(json: String): List<T> {
         val jsonSchema: JsonNode = generator.generateJsonSchema(T::class.java)
-        val tree: JsonNode
+        val jsonList: List<JsonNode>
         try {
-            tree = Jsons.deserialize(json)
+            val tree: JsonNode = Jsons.deserialize(json)
+            jsonList = if (tree.isArray) tree.toList() else listOf(tree)
         } catch (e: Exception) {
             throw ConfigErrorException("malformed json value while parsing for ${T::class}", e)
         }
         if (T::class == JsonNode::class) {
-            return tree as T
+            return jsonList.map { it as T }
         }
-        val validationFailures = JsonSchemaValidator().validate(jsonSchema, tree)
-        if (validationFailures.isNotEmpty()) {
-            throw ConfigErrorException(
-                "${T::class} json schema violation: ${validationFailures.first()}"
-            )
+        for (element in jsonList) {
+            val validationFailures = JsonSchemaValidator().validate(jsonSchema, element)
+            if (validationFailures.isNotEmpty()) {
+                throw ConfigErrorException(
+                    "${T::class} json schema violation: ${validationFailures.first()}"
+                )
+            }
         }
-        val result: T
-        try {
-            result = Jsons.`object`(tree, T::class.java)
-        } catch (e: Exception) {
-            throw ConfigErrorException("failed to map valid json to ${T::class} ", e)
+        return jsonList.map {
+            try {
+                Jsons.`object`(it, T::class.java)
+            } catch (e: Exception) {
+                throw ConfigErrorException("failed to map valid json to ${T::class} ", e)
+            }
         }
-        return result
     }
+
+    inline fun <reified T> parse(json: String): T =
+        parseList<T>(json).firstOrNull()
+            ?: throw ConfigErrorException("missing json value while parsing for ${T::class}")
 
     val config: JsonSchemaConfig =
         JsonSchemaConfig.vanillaJsonSchemaDraft4()
