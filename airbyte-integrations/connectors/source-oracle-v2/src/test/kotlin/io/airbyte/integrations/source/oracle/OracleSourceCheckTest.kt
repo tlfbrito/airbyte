@@ -36,7 +36,7 @@ class OracleSourceCheckTest {
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_port", value = "2222")
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_user", value = "sshuser")
     @Property(name = "airbyte.connector.config.tunnel_method.tunnel_user_password", value = "secret")
-    
+
      */
     internal fun testConfig() {
         checkOperation.execute()
