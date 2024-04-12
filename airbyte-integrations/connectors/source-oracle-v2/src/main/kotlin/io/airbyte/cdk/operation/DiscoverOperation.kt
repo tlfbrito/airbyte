@@ -4,6 +4,7 @@
 
 package io.airbyte.cdk.operation
 
+import io.airbyte.cdk.consumers.OutputConsumer
 import io.airbyte.cdk.jdbc.ColumnMetadata
 import io.airbyte.cdk.jdbc.MetadataQuerier
 import io.airbyte.cdk.jdbc.SourceOperations
@@ -16,40 +17,41 @@ import io.airbyte.protocol.models.v0.AirbyteStreamNameNamespacePair
 import io.airbyte.protocol.models.v0.CatalogHelpers
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
-import jakarta.inject.Named
 import jakarta.inject.Singleton
 import java.sql.SQLException
-import java.util.function.Consumer
 
 private val logger = KotlinLogging.logger {}
 
 @Singleton
-@Named("discoverOperation")
 @Requires(property = CONNECTOR_OPERATION, value = "discover")
 @Requires(env = ["source"])
-class DefaultDiscoverOperation(
-        private val sourceOperations: SourceOperations,
-        private val metadataQuerier: MetadataQuerier,
-        @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
+class DiscoverOperation(
+    val sourceOperations: SourceOperations,
+    val metadataQuerier: MetadataQuerier,
+    val outputConsumer: OutputConsumer
 ) : Operation, AutoCloseable {
 
     override val type = OperationType.DISCOVER
 
     override fun execute() {
-        val airbyteStreams: List<AirbyteStream> =
-            tableNames().mapNotNull(::discoveredStream).map {
+        logger.info { "Performing DISCOVER operation." }
+        val airbyteStreams: List<AirbyteStream>
+        try {
+            airbyteStreams = tableNames().mapNotNull(::discoveredStream).map {
                 CatalogHelpers.createAirbyteStream(
-                        it.fullyQualifiedName.name,
-                        it.fullyQualifiedName.namespace,
-                        it.fields
-                    )
+                    it.fullyQualifiedName.name,
+                    it.fullyQualifiedName.namespace,
+                    it.fields
+                )
                     .withSourceDefinedPrimaryKey(it.primaryKeys)
             }
-        outputRecordCollector.accept(
-            AirbyteMessage()
-                .withType(AirbyteMessage.Type.CATALOG)
-                .withCatalog(AirbyteCatalog().withStreams(airbyteStreams))
-        )
+        } catch (e: Exception) {
+            throw OperationExecutionException("Failed to discover catalog.", e)
+        }
+
+        outputConsumer.accept(AirbyteMessage()
+            .withType(AirbyteMessage.Type.CATALOG)
+            .withCatalog(AirbyteCatalog().withStreams(airbyteStreams)))
     }
 
     override fun close() {

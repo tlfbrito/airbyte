@@ -9,15 +9,15 @@ import java.sql.*
 private val logger = KotlinLogging.logger {}
 
 @Prototype
-class JdbcMetadataQuerier(
-    private val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>,
-    private val jdbcConnectionFactory: JdbcConnectionFactory
+private class JdbcMetadataQuerier(
+    val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>,
+    val jdbcConnectionFactory: JdbcConnectionFactory
 ) : MetadataQuerier {
 
-    private val config: SourceConnectorConfiguration by lazy { configSupplier.get() }
+    val config: SourceConnectorConfiguration by lazy { configSupplier.get() }
 
-    private val connDelegate: Lazy<Connection> = lazy { jdbcConnectionFactory.get() }
-    private val conn: Connection by connDelegate
+    val connDelegate: Lazy<Connection> = lazy { jdbcConnectionFactory.get() }
+    val conn: Connection by connDelegate
 
     override fun tableNames(): List<TableName> {
         val results = mutableListOf<TableName>()

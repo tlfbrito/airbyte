@@ -5,7 +5,7 @@
 package io.airbyte.integrations.source.oracle
 
 import io.airbyte.cdk.operation.CONNECTOR_OPERATION
-import io.airbyte.cdk.operation.DefaultCheckOperation
+import io.airbyte.cdk.operation.CheckOperation
 import io.airbyte.commons.io.IOs
 import io.micronaut.context.annotation.Property
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test
 @Property(name = CONNECTOR_OPERATION, value = "check")
 class OracleSourceCheckTest {
 
-    @Inject lateinit var checkOperation: DefaultCheckOperation
+    @Inject lateinit var checkOperation: CheckOperation
 
     @Test
     @Property(name = "airbyte.connector.config.host", value = "localhost")

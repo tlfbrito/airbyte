@@ -6,42 +6,36 @@ package io.airbyte.cdk.operation
 
 import io.airbyte.cdk.command.ConnectorConfigurationSupplier
 import io.airbyte.cdk.command.SourceConnectorConfiguration
-import io.airbyte.cdk.integrations.base.AirbyteTraceMessageUtility
-import io.airbyte.cdk.integrations.base.errors.messages.ErrorMessage
-import io.airbyte.cdk.integrations.source.relationaldb.AbstractDbSource
+import io.airbyte.cdk.consumers.OutputConsumer
 import io.airbyte.cdk.integrations.util.ApmTraceUtils
-import io.airbyte.cdk.integrations.util.ConnectorExceptionUtil
 import io.airbyte.cdk.jdbc.MetadataQuerier
 import io.airbyte.cdk.jdbc.SourceOperations
 import io.airbyte.cdk.jdbc.TableName
-import io.airbyte.commons.exceptions.ConnectionErrorException
 import io.airbyte.protocol.models.v0.AirbyteConnectionStatus
 import io.airbyte.protocol.models.v0.AirbyteErrorTraceMessage
 import io.airbyte.protocol.models.v0.AirbyteMessage
 import io.airbyte.protocol.models.v0.AirbyteTraceMessage
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
-import jakarta.inject.Named
 import jakarta.inject.Singleton
 import java.sql.SQLException
-import java.util.function.Consumer
 import org.apache.commons.lang3.exception.ExceptionUtils
 
 private val logger = KotlinLogging.logger {}
 
 @Singleton
-@Named("checkOperation")
 @Requires(property = CONNECTOR_OPERATION, value = "check")
-class DefaultCheckOperation(
-    private val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>,
-    private val sourceOperations: SourceOperations,
-    private val metadataQuerier: MetadataQuerier,
-    @Named("outputRecordCollector") private val outputRecordCollector: Consumer<AirbyteMessage>
+class CheckOperation(
+    val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>,
+    val sourceOperations: SourceOperations,
+    val metadataQuerier: MetadataQuerier,
+    val outputConsumer: OutputConsumer,
 ) : Operation, AutoCloseable {
 
     override val type = OperationType.CHECK
 
     override fun execute() {
+        logger.info { "Performing CHECK operation." }
         try {
             doCheck()
         } catch (e: SQLException) {
@@ -52,7 +46,7 @@ class DefaultCheckOperation(
                 e.message?.let { "Message: $it" },
             ).joinToString(separator = "; ")
             ApmTraceUtils.addExceptionToTrace(e)
-            outputRecordCollector.accept(AirbyteMessage()
+            outputConsumer.accept(AirbyteMessage()
                 .withType(AirbyteMessage.Type.TRACE)
                 .withTrace(AirbyteTraceMessage()
                     .withType(AirbyteTraceMessage.Type.ERROR)
@@ -61,7 +55,7 @@ class DefaultCheckOperation(
                         .withMessage(message)
                         .withInternalMessage(e.toString())
                         .withStackTrace(ExceptionUtils.getStackTrace(e)))))
-            outputRecordCollector.accept(AirbyteMessage()
+            outputConsumer.accept(AirbyteMessage()
                 .withType(AirbyteMessage.Type.CONNECTION_STATUS)
                 .withConnectionStatus(AirbyteConnectionStatus()
                     .withMessage(message)
@@ -71,7 +65,7 @@ class DefaultCheckOperation(
         } catch (e: Exception) {
             logger.debug (e) { "Exception while checking config." }
             ApmTraceUtils.addExceptionToTrace(e)
-            outputRecordCollector.accept(AirbyteMessage()
+            outputConsumer.accept(AirbyteMessage()
                 .withType(AirbyteMessage.Type.CONNECTION_STATUS)
                 .withConnectionStatus(AirbyteConnectionStatus()
                     .withMessage(String.format(COMMON_EXCEPTION_MESSAGE_TEMPLATE, e.message))
@@ -80,7 +74,7 @@ class DefaultCheckOperation(
             return
         }
         logger.info { "Config check completed successfully." }
-        outputRecordCollector.accept(AirbyteMessage()
+        outputConsumer.accept(AirbyteMessage()
             .withType(AirbyteMessage.Type.CONNECTION_STATUS)
             .withConnectionStatus(AirbyteConnectionStatus()
                 .withStatus(AirbyteConnectionStatus.Status.SUCCEEDED)))
@@ -114,6 +108,7 @@ class DefaultCheckOperation(
         }
         throw RuntimeException("Unable to query any of the discovered table(s): $tableNames")
     }
+
     companion object {
         const val COMMON_EXCEPTION_MESSAGE_TEMPLATE: String =
             "Could not connect with provided configuration. Error: %s"

@@ -12,7 +12,6 @@ import io.micronaut.context.env.MapPropertySource
 import io.micronaut.core.cli.CommandLine
 import java.io.File
 import java.nio.file.Path
-import java.util.*
 
 private val logger = KotlinLogging.logger {}
 

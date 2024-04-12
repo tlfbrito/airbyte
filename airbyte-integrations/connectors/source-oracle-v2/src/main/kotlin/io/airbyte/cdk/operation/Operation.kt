@@ -7,8 +7,8 @@ package io.airbyte.cdk.operation
 const val CONNECTOR_OPERATION: String = "airbyte.connector.operation"
 
 /**
- * Interface that defines a CLI operation. Each operation maps to one of the available {@link
- * OperationType}s and proxies to an {@link OperationExecutor} that performs the actual work.
+ * Interface that defines a CLI operation.
+ * Each operation maps to one of the available {@link OperationType}s.
  */
 interface Operation {
 
@@ -18,8 +18,8 @@ interface Operation {
 }
 
 /**
- * Defines the operations that may be invoked via the CLI arguments. Not all connectors will
- * implement all of these operations.
+ * Defines the operations that may be invoked via the CLI arguments.
+ * Not all connectors will implement all of these operations.
  */
 enum class OperationType(
     val requiresConfiguration: Boolean = false,

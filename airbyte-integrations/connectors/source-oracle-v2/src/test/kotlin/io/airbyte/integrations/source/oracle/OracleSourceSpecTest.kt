@@ -8,18 +8,13 @@ import com.deblock.jsondiff.DiffGenerator
 import com.deblock.jsondiff.diff.JsonDiff
 import com.deblock.jsondiff.matcher.CompositeJsonMatcher
 import com.deblock.jsondiff.matcher.JsonMatcher
-import com.deblock.jsondiff.matcher.LenientJsonArrayPartialMatcher
 import com.deblock.jsondiff.matcher.LenientJsonObjectPartialMatcher
-import com.deblock.jsondiff.matcher.LenientNumberPrimitivePartialMatcher
 import com.deblock.jsondiff.matcher.StrictJsonArrayPartialMatcher
-import com.deblock.jsondiff.matcher.StrictJsonObjectPartialMatcher
 import com.deblock.jsondiff.matcher.StrictPrimitivePartialMatcher
 import com.deblock.jsondiff.viewer.OnlyErrorDiffViewer
-import com.deblock.jsondiff.viewer.PatchDiffViewer
-import com.fasterxml.jackson.databind.JsonNode
 import io.airbyte.cdk.consumers.DefaultOutputRecordCollector
 import io.airbyte.cdk.operation.CONNECTOR_OPERATION
-import io.airbyte.cdk.operation.DefaultSpecOperation
+import io.airbyte.cdk.operation.SpecOperation
 import io.airbyte.commons.json.Jsons
 import io.airbyte.commons.resources.MoreResources
 import io.airbyte.protocol.models.v0.AirbyteMessage
@@ -38,7 +33,7 @@ import org.junit.jupiter.api.Test
 @Property(name = CONNECTOR_OPERATION, value = "spec")
 class OracleSourceSpecTest {
 
-    @Inject lateinit var specOperation: DefaultSpecOperation
+    @Inject lateinit var specOperation: SpecOperation
 
     private var latestSpec = ConnectorSpecification()
 

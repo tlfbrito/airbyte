@@ -27,11 +27,11 @@ import io.micronaut.context.annotation.ConfigurationProperties
 @JsonSchemaDescription(
     "Whether to initiate an SSH tunnel before connecting to the database, and if so, which kind of authentication to use."
 )
-sealed interface SshTunnelMethod
+sealed interface SshTunnelMethodConfiguration
 
 @JsonSchemaTitle("No Tunnel")
 @JsonSchemaDescription("No ssh tunnel needed to connect to database")
-data object SshNoTunnelMethod : SshTunnelMethod
+data object SshNoTunnelMethod : SshTunnelMethodConfiguration
 
 @JsonSchemaTitle("SSH Key Authentication")
 @JsonSchemaDescription("Connect through a jump server tunnel host using username and ssh key")
@@ -64,7 +64,7 @@ data class SshKeyAuthTunnelMethod(
     )
     @JsonSchemaInject(json = """{"order":4,"multiline":true,"airbyte_secret": true}""")
     val key: String,
-) : SshTunnelMethod
+) : SshTunnelMethodConfiguration
 
 @JsonSchemaTitle("Password Authentication")
 @JsonSchemaDescription(
@@ -96,10 +96,10 @@ data class SshPasswordAuthTunnelMethod(
     @JsonPropertyDescription("OS-level password for logging into the jump server host")
     @JsonSchemaInject(json = """{"order":4,"airbyte_secret": true}""")
     val password: String,
-) : SshTunnelMethod
+) : SshTunnelMethodConfiguration
 
 @ConfigurationProperties("$CONNECTOR_CONFIG_PREFIX.tunnel_method")
-class MicronautFriendlySshTunnelMethod {
+class MicronautPropertiesFriendlySshTunnelMethodConfigurationJsonObject {
 
     var tunnelMethod: String = "NO_TUNNEL"
     var tunnelHost: String? = null
@@ -109,7 +109,7 @@ class MicronautFriendlySshTunnelMethod {
     var tunnelUserPassword: String? = null
 
     @JsonValue
-    fun asSshTunnelMethod(): SshTunnelMethod =
+    fun asSshTunnelMethod(): SshTunnelMethodConfiguration =
         when (tunnelMethod) {
             "NO_TUNNEL" -> SshNoTunnelMethod
             "SSH_KEY_AUTH" ->

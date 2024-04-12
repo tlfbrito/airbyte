@@ -4,18 +4,16 @@
 
 package io.airbyte.integrations.source.oracle
 
-import io.airbyte.cdk.operation.CONNECTOR_OPERATION
-import io.airbyte.cdk.operation.DiscoverOperation
+import io.airbyte.cdk.command.ConnectorConfigurationJsonObjectWrapper
 import io.micronaut.context.annotation.Property
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest
 import jakarta.inject.Inject
 import org.junit.jupiter.api.Test
 
 @MicronautTest(environments = ["source"])
-@Property(name = CONNECTOR_OPERATION, value = "discover")
-class OracleSourceDiscoverTest {
+class OracleSourceConfigurationTest {
 
-    @Inject lateinit var discoverOperation: DiscoverOperation
+    @Inject lateinit var config: ConnectorConfigurationJsonObjectWrapper<OracleSourceConfigurationJsonObject>
 
     @Test
     @Property(name = "airbyte.connector.config.host", value = "localhost")
@@ -28,8 +26,16 @@ class OracleSourceDiscoverTest {
         value = "service_name"
     )
     @Property(name = "airbyte.connector.config.connection_data.service_name", value = "FREEPDB1")
-    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "NO_TUNNEL")
-    internal fun testDiscover() {
-        discoverOperation.execute()
+    /*
+    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_method", value = "SSH_PASSWORD_AUTH")
+    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_host", value = "localhost")
+    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_port", value = "2222")
+    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_user", value = "sshuser")
+    @Property(name = "airbyte.connector.config.tunnel_method.tunnel_user_password", value = "secret")
+
+     */
+    internal fun testConfig() {
+        config.get()
     }
+
 }

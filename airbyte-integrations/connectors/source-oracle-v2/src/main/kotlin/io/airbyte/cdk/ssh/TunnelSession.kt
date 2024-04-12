@@ -41,7 +41,7 @@ class TunnelSession internal constructor(
 
 fun createTunnelSession(
     remote: SshdSocketAddress,
-    sshTunnel: SshTunnelMethod,
+    sshTunnel: SshTunnelMethodConfiguration,
     connectionOptions: SshConnectionOptions,
 ): TunnelSession {
     if (sshTunnel is SshNoTunnelMethod) {
@@ -60,7 +60,7 @@ fun createTunnelSession(
             is SshPasswordAuthTunnelMethod ->
                 client.connect(sshTunnel.user.trim(), sshTunnel.host.trim(), sshTunnel.port)
         }
-        val session: ClientSession = connectFuture.verify(timeout).session
+        val session: ClientSession = connectFuture.verify(tunnelSessionTimeout).session
         when (sshTunnel) {
             SshNoTunnelMethod -> Unit
             is SshKeyAuthTunnelMethod -> {
@@ -76,7 +76,7 @@ fun createTunnelSession(
             is SshPasswordAuthTunnelMethod ->
                 session.addPasswordIdentity(sshTunnel.password)
         }
-        session.auth().verify(timeout)
+        session.auth().verify(tunnelSessionTimeout)
         logger.info { "Established tunneling session to $remote." }
         // Start port forwarding.
         val localhost: String = SshdSocketAddress.LOCALHOST_ADDRESS.hostName
@@ -99,7 +99,7 @@ fun createTunnelSession(
 const val SSH_TIMEOUT_DISPLAY_MESSAGE: String = "Timed out while opening a SSH Tunnel. " +
         "Please double check the given SSH configurations and try again."
 
-private val timeout: Duration = Duration.ofMillis(15_000)
+private val tunnelSessionTimeout: Duration = Duration.ofMillis(15_000)
 
 private fun createClient(connectionOptions: SshConnectionOptions): SshClient {
     Security.addProvider(BouncyCastleProvider())

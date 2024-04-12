@@ -12,14 +12,14 @@ import jakarta.inject.Singleton
 private val logger = KotlinLogging.logger {}
 
 @Singleton
-@Named("readOperation")
-@Requires(property = CONNECTOR_OPERATION, value = "read")
-@Requires(env = ["source"])
-class DefaultReadOperation : Operation {
+@Named("writeOperation")
+@Requires(property = CONNECTOR_OPERATION, value = "write")
+@Requires(env = ["destination"])
+class WriteOperation : Operation {
 
-    override val type = OperationType.READ
+    override val type = OperationType.WRITE
 
     override fun execute() {
-        logger.info { "Using default read operation." }
+        logger.info { "Performing WRITE operation." }
     }
 }

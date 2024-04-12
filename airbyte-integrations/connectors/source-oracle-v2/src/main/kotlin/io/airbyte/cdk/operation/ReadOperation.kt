@@ -6,20 +6,18 @@ package io.airbyte.cdk.operation
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.micronaut.context.annotation.Requires
-import jakarta.inject.Named
 import jakarta.inject.Singleton
 
 private val logger = KotlinLogging.logger {}
 
 @Singleton
-@Named("writeOperation")
-@Requires(property = CONNECTOR_OPERATION, value = "write")
-@Requires(env = ["destination"])
-class DefaultWriteOperation : Operation {
+@Requires(property = CONNECTOR_OPERATION, value = "read")
+@Requires(env = ["source"])
+class ReadOperation : Operation {
 
-    override val type = OperationType.WRITE
+    override val type = OperationType.READ
 
     override fun execute() {
-        logger.info { "Using default write operation." }
+        logger.info { "Performing READ operation." }
     }
 }

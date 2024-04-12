@@ -15,26 +15,16 @@ import java.sql.DriverManager
 import java.time.Duration
 import java.util.*
 import java.util.function.Supplier
-import kotlin.time.toJavaDuration
-import org.apache.sshd.client.SshClient
-import org.apache.sshd.client.keyverifier.AcceptAllServerKeyVerifier
-import org.apache.sshd.client.session.ClientSession
-import org.apache.sshd.common.SshException
-import org.apache.sshd.common.session.SessionHeartbeatController
 import org.apache.sshd.common.util.net.SshdSocketAddress
-import org.apache.sshd.common.util.security.SecurityUtils
-import org.apache.sshd.core.CoreModuleProperties
-import org.apache.sshd.server.forward.AcceptAllForwardingFilter
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 private val logger = KotlinLogging.logger {}
 
 @Singleton
 class JdbcConnectionFactory(
-    private val configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>
+    configSupplier: ConnectorConfigurationSupplier<SourceConnectorConfiguration>
 ) : Supplier<Connection>, AutoCloseable {
 
-    private val config: SourceConnectorConfiguration by lazy { configSupplier.get() }
+    val config: SourceConnectorConfiguration by lazy { configSupplier.get() }
 
     private val tunnelSessionDelegate: Lazy<TunnelSession> = lazy {
         val remote = SshdSocketAddress(config.realHost.trim(), config.realPort)
